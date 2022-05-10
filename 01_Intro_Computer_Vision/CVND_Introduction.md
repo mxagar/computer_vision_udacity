@@ -2,10 +2,525 @@
 
 These are my personal notes taken while following the [Udacity Computer Vision Nanodegree](https://www.udacity.com/course/computer-vision-nanodegree--nd891).
 
+The nanodegree is composed of six modules:
+
+1. Introduction to Computer Vision
+2. Cloud Computing (Optional)
+3. Advanced Computer Vision and Deep Learning
+4. Object Tracking and Localization
+5. Extra Topics: C++ Programming
+
+Each module has a folder with its respective notes.
+This folder/file refers to the **first** module: **Introduction to Computer Vision**.
+
+Note that:
+
+- I made many hand-written nortes, which I will scan and push to this repostory.
+- I forked the Udacity repositors for the exercises; all the material and  notebooks are there:
+	- [CVND_Exercises](https://github.com/mxagar/CVND_Exercises)
+	- [DL_PyTorch](https://github.com/mxagar/DL_PyTorch)
+
 Mikel Sagardia, 2022.
 No guarantees.
 
-Overview of Contents:
+## Practical Installation Notes
 
-1. A
+I basically followed the installation & setup guide from [CVND_Exercises](https://github.com/mxagar/CVND_Exercises), which can be summarized with the following commands:
 
+```bash
+# Create new conda environment to be used for the nanodegree
+conda create -n cvnd python=3.6
+conda activate cvnd
+conda install pytorch torchvision -c pytorch
+conda install pip
+#conda install -c conda-forge jupyterlab
+# Go to the folder where the Udacity DL exercises are cloned, after forking the original repo
+cd ~/git_repositories/CVND_Exercises
+pip install -r requirements.txt
+```
+
+## Overview of Contents
+
+1. Image Representation & Classification
+	- CV Pipeline
+	- Training a model
+	- Separating data: Basic classification idea
+	- Pixelmaps
+	- **Notebook**: `1_1_Image_Representation` / `1. Images as Numerical Data.ipynb`
+	- Color images
+	- **Notebook**: `1_1_Image_Representation` / `2. Visualizing RGB Channels.ipynb`
+	- **Notebook**: `1_1_Image_Representation` / `3. Blue Screen.ipynb`
+	- Color Spaces and Transforms
+	- **Notebook**: `1_1_Image_Representation` / `5_1. HSV Color Space, Balloons.ipynb`
+	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_1. Visualizing the Data.ipynb`
+	- Labelled Data and Accuracy
+	- Features
+	- Standardizing Output
+	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_2. Standardizing the Data.ipynb`
+	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_3. Average Brightness.ipynb`
+	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_4. Classification.ipynb`
+	- Evaluation Metrics#
+	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_5. Accuracy and Misclassification.ipynb`
+2. Convolutional Filters and Edge Detection
+3. Types of Features and Image Segmentation
+4. Feature Vectors
+5. CNN Layers and Feature Visualization
+6. Project 1: Facial Keypoint Detection
+7. Project 2: Github
+8. Extra modules
+	- 8.1 Review on Neural Networks
+	- 8.2 Applying Deep Learning Modelss
+	- 8.3 Github
+	- 8.4 Skin Cancer Detection
+
+## 1. Image Representation & Classification
+
+Since I know many concepts already, I will just jot down the keywords most of the time.
+
+### CV Pipeline
+
+Example: Detect human emotions (Affectiva)
+
+1. Input: sequence of images
+2. Pre-processing: reduce noise, scaling
+3. Select ROIs: object detection, image segmentation
+4. Feature extraction: eyebrows, etc
+5. Classification: Prediction/Recognition: object recognition, feaures matching -> determine emotion
+
+
+### Training a model
+
+- Labelled images fed to a CNN
+- Features learned iteratively by optimizing the predeiction error thanks to labelled data
+- Gradient descend is used to minimize error
+
+### Separating data: Basic classification idea
+	
+- Object samples defined as vectors of features: color, size, etc
+- Samples are labelled and plotted / represented in a multi-dimensional feature space
+- Lines (hyperplanes) are drawn (computed) to separate regions that contain one or the other class
+
+![Classification in feature space](./pics/classification.png)
+
+
+### Pixelmaps
+	
+- Image formation: pin-hole camera model
+- Pixelmaps:
+	- width x height, X x Y, row & column
+	- pixel values: 0 (dark/black) - 255 (light/white) = 2**8 = `int8`
+	- 3 channels
+
+### **Notebook**: `1_1_Image_Representation` / `1. Images as Numerical Data.ipynb`
+
+```python
+import numpy as np
+import matplotlib.image as mpimg  # for reading in images
+import matplotlib.pyplot as plt
+import cv2  # computer vision library
+%matplotlib inline
+
+# Read in the image
+image = mpimg.imread('images/waymo_car.jpg')
+# Print out the image dimensions
+print('Image dimensions:', image.shape)
+# Change from color to grayscale
+gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+plt.imshow(gray_image, cmap='gray')
+# Print specific grayscale pixel values
+# What is the pixel value at x = 400 and y = 300 (on the body of the car)?
+x = 400
+y = 300
+print(gray_image[y,x])
+
+#Find the maximum and minimum grayscale values in this image
+max_val = np.amax(gray_image)
+min_val = np.amin(gray_image)
+print('Max: ', max_val)
+print('Min: ', min_val)
+
+# Create a 5x5 image using just grayscale, numerical values
+tiny_image = np.array([[0, 20, 30, 150, 120],
+                      [200, 200, 250, 70, 3],
+                      [50, 180, 85, 40, 90],
+                      [240, 100, 50, 255, 10],
+                      [30, 0, 75, 190, 220]])
+
+# To show the pixel grid, use matshow
+plt.matshow(tiny_image, cmap='gray')
+```
+
+### Color images
+	
+- width x height x DEPTH
+- DEPTH: channels: RGB -> depth = 3
+- Intuitive notion: Color is necessary whenever we humans use the color cue to process images
+
+### **Notebook**: `1_1_Image_Representation` / `2. Visualizing RGB Channels.ipynb`
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+%matplotlib inline
+
+# Read in the image
+image = mpimg.imread('images/wa_state_highway.jpg')
+plt.imshow(image)
+
+# Isolate RGB channels
+r = image[:,:,0]
+g = image[:,:,1]
+b = image[:,:,2]
+
+# Visualize the individual color channels
+f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,10))
+ax1.set_title('R channel')
+ax1.imshow(r, cmap='gray')
+ax2.set_title('G channel')
+ax2.imshow(g, cmap='gray')
+ax3.set_title('B channel')
+ax3.imshow(b, cmap='gray')
+```
+
+### **Notebook**: `1_1_Image_Representation` / `3. Blue Screen.ipynb`
+
+The color can be detected and used for thresholding. This, way, we can select regions of an image.
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2
+%matplotlib inline
+
+# Read in the image
+image = cv2.imread('images/pizza_bluescreen.jpg')
+
+# Print out the type of image data and its dimensions (height, width, and color)
+print('This image is:', type(image), ' with dimensions:', image.shape)
+# Make a copy of the image
+image_copy = np.copy(image)
+
+# Change color to RGB (from BGR)
+image_copy = cv2.cvtColor(image_copy, cv2.COLOR_BGR2RGB)
+# Display the image copy
+plt.imshow(image_copy)
+
+## TODO: Define the color selection boundaries in RGB values
+# play around with these values until you isolate the blue background
+lower_blue = np.array([0,0,220]) 
+upper_blue = np.array([220,220,255])
+
+# Define the masked area
+mask = cv2.inRange(image_copy, lower_blue, upper_blue)
+# Vizualize the mask
+plt.imshow(mask, cmap='gray')
+# Mask the image to let the pizza show through
+# IMPORTANT: BEFORE APPLYING ANY MASK, COPY IMAGE!
+masked_image = np.copy(image_copy)
+masked_image[mask != 0] = [0, 0, 0]
+# Display it!
+plt.imshow(masked_image)
+
+# Load in a background image, and convert it to RGB 
+background_image = cv2.imread('images/space_background.jpg')
+background_image = cv2.cvtColor(background_image, cv2.COLOR_BGR2RGB)
+# Crop it to the right size (514x816)
+crop_background = background_image[0:514, 0:816]
+# Mask the cropped background so that the pizza area is blocked
+crop_background[mask == 0] = [0, 0, 0]
+# Display the background
+plt.imshow(crop_background)
+
+# Add the two images together to create a complete image!
+complete_image = masked_image + crop_background
+# Display the result
+plt.imshow(complete_image)
+
+```
+
+### Color Spaces and Transforms
+
+- There are several color spaces
+- RGB: 3D cube
+- HSV: Hue - Saturation - Value
+- HLS: Hue - Lightness - Saturation
+
+A useful/intuitive color map is HSV:
+
+- Hue: color rainbow! it's the most reliable value for color detection
+- Value: it's the value that most changes under different lightning conditions (-> brightness/shadow!)
+- Note: V & S in [0,255]; Hue is in degrees -> [0,180]
+
+### **Notebook**: `1_1_Image_Representation` / `5_1. HSV Color Space, Balloons.ipynb`
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+import cv2
+%matplotlib inline
+
+# Read in the image
+image = cv2.imread('images/water_balloons.jpg')
+
+# Change color to RGB (from BGR)
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+plt.imshow(image)
+
+# RGB channels
+r = image[:,:,0]
+g = image[:,:,1]
+b = image[:,:,2]
+f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,10))
+ax1.set_title('Red')
+ax1.imshow(r, cmap='gray')
+ax2.set_title('Green')
+ax2.imshow(g, cmap='gray')
+ax3.set_title('Blue')
+ax3.imshow(b, cmap='gray')
+
+# Convert from RGB to HSV
+hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+# HSV channels
+h = hsv[:,:,0]
+s = hsv[:,:,1]
+v = hsv[:,:,2]
+f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,10))
+ax1.set_title('Hue')
+ax1.imshow(h, cmap='gray')
+ax2.set_title('Saturation')
+ax2.imshow(s, cmap='gray')
+ax3.set_title('Value')
+ax3.imshow(v, cmap='gray')
+
+# Define our color selection criteria in HSV values
+# Recall: H channels is until 180 degrees
+# S, V: we allow them to have any value
+lower_hue = np.array([160,0,0]) 
+upper_hue = np.array([180,255,255])
+# Define our color selection criteria in RGB values
+# It is more difficult and imprecise!
+lower_pink = np.array([180,0,100]) 
+upper_pink = np.array([255,255,230])
+
+# Define the masked area in RGB space
+mask_rgb = cv2.inRange(image, lower_pink, upper_pink)
+# mask the image
+masked_image = np.copy(image)
+masked_image[mask_rgb==0] = [0,0,0]
+# Vizualize the mask
+plt.imshow(masked_image)
+
+# Now try HSV!
+# Define the masked area in HSV space
+mask_hsv = cv2.inRange(hsv, lower_hue, upper_hue)
+# mask the image
+masked_image = np.copy(image)
+masked_image[mask_hsv==0] = [0,0,0]
+# Vizualize the mask
+plt.imshow(masked_image)
+```
+
+### **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_1. Visualizing the Data.ipynb`
+
+I drew a histogram to observe the difference between day & night images
+
+```python
+color = ('r','g','b')
+for i,col in enumerate(color):
+    hist = cv2.calcHist([selected_image],channels=[i],mask=None,histSize=[256],ranges=[0,256])
+    plt.plot(hist,col)
+    plt.xlim([0,256])
+```
+
+My observations:
+
+- Day images have a pronounced peak around 250 in all RGB channels
+- Night images have a peak around 250 (lights) but most of the pixels are below 180
+
+Other observations:
+
+- Day images are expected to have more colors
+
+
+### Labelled Data and Accuracy
+
+Labels can be:
+
+- ground truth: used for training
+- predicted
+
+Accuracy = correctly predicted (ground truth label = predicted label) / total num of images.
+
+Good practice to use number classes, because they're easier to track:
+
+- day: 1
+- night: 0
+
+### Features
+	
+Feautures are reconizable properties ideally even under varying conditions they are like measurable traits.
+
+### Standardizing Output
+
+Usual labelling:
+
+- integer
+	- 1 = cat
+	- 2 = tiger
+	- 3 = cow
+	- 4 = mouse
+	- image label: 3 -> cow
+- one-hot encoding
+	- [cat, tiger, cow, mouse]
+	- image label: [0,0,1,0] -> cow 
+
+Size of the images: Should be the same for all!
+
+### **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_2. Standardizing the Data.ipynb`
+
+Basically, the images needed to be resized and their labels casted to ints.
+
+```python	
+def standardize_input(image):
+    new_img = cv2.resize(image, (1100,600))
+    standard_im = new_img
+    return standard_im
+
+def encode(label):
+    labels = ["day", "night"]
+    values = [1,0]    
+    for i in range(len(labels)):
+        if label == labels[i]:
+            numerical_val = values[i]
+    return numerical_val
+
+def standardize(image_list):
+    standard_list = []
+    for item in image_list:
+        image = item[0]
+        label = item[1]
+        standardized_im = standardize_input(image)
+        binary_label = encode(label)    
+        standard_list.append((standardized_im, binary_label))
+    return standard_list
+
+STANDARDIZED_LIST = standardize(IMAGE_LIST)
+```
+
+### **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_3. Average Brightness.ipynb`
+
+Basically, the average brightness is computed by averaging the pixel value of the V channel.
+
+```python
+def avg_brightness(rgb_image):
+    hsv = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
+    sum_brightness = np.sum(hsv[:,:,2])
+    num_pixels = hsv.shape[0]*hsv.shape[1]
+    avg = sum_brightness / num_pixels
+    return avg
+```
+
+I additionally computed the histograms of day & night image brightness values
+
+```python
+def compute_average_brightness(list_images):
+brightness = []
+for i in range(len(list_images)):
+    brightness_value = avg_brightness(list_images[i][0])
+    label = list_images[i][1]
+    brightness.append((label,brightness_value))
+return brightness
+brightness = compute_average_brightness(STANDARDIZED_LIST)
+brightness_day = list(filter((lambda lst: lst[0]==1),brightness))
+brightness_night = list(filter((lambda lst: lst[0]==0),brightness))
+brightness_day = list(map((lambda lst: lst[1]),brightness_day))
+brightness_night = list(map((lambda lst: lst[1]),brightness_night))
+
+plt.hist(brightness_day, alpha = 0.5)
+plt.hist(brightness_night, alpha = 0.5)
+```
+
+Visual histogram inspection: average brightness 110 seems to be a threshold.
+
+### **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_4. Classification.ipynb`
+
+A threshold on the feature value is defined for selecting between two classess.
+After visual inspection of the histograms, I select `threshold_value = 110`.
+
+```python
+def estimate_label(rgb_image):
+    brightness_value = avg_brightness(rgb_image)
+    predicted_label = 0
+    threshold_value = 110
+    if brightness_value > threshold_value:
+        predicted_label = 1
+    return predicted_label
+```
+
+Although not asked, I evaluated the accuracy of the classifier:
+
+```python
+def evaluate_dataset(dataset):
+    evaluation_list = []
+    for i in range(len(dataset)):
+        predicted_label = estimate_label(dataset[i][0])
+        evaluation_list.append((dataset[i][1],predicted_label))
+    correct_predictions = len(list(filter((lambda lst: lst[0]==lst[1]),evaluation_list)))
+    accuracy = correct_predictions / len(dataset)
+    return accuracy
+
+print(evaluate_dataset(STANDARDIZED_LIST))
+```
+
+### Evaluation Metrics
+
+Accuracy = # correctly classified / # all images.
+
+We differentiate between:
+
+- training dataset: used for learning;
+- test dataset: images unseen by the classifier to test how it would work in real world.
+
+Missclassified images: it's key to filter them and analyze them separately to see how to improve classifier; which additional features to the average brightness could be considered?
+
+### **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_5. Accuracy and Misclassification.ipynb`
+
+We had to measure the accuracy and analyze the missclassified images.
+
+The day images with many shadows have a brightness close to the threshold. The same happens with the night images with strong night illumination. Observation: the Hue histogram of the night images contains almost 100% of the distribution between values 5-30. For day images, the distribution is more spread. Possible improvement: add a second feature which accounts for the relative distribution area in the Hue value region 5-30 -> similarly as before identify threshold between day & night images.
+
+So I wrote two new functions for that:
+
+```python
+def night_illumination_weight(rgb_image):
+    hsv = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
+    hist = cv2.calcHist([hsv],channels=[0],mask=None,histSize=[180],ranges=[0,180])
+    area_pixels = hsv.shape[0]*hsv.shape[1]
+    min_h = 5
+    max_h = 30
+    illumination_weight = 0.0
+    for i in range(min_h,max_h):
+        illumination_weight = illumination_weight + (hist[i][0]/area_pixels)
+    return illumination_weight
+illumination_value = night_illumination_weight(MISCLASSIFIED[1][0])
+print(illumination_value)
+
+def estimate_label_extended(rgb_image):
+    brightness = avg_brightness(rgb_image)
+    threshold_brightness_low = 100
+    threshold_brightness_high = 115    
+    threshold_illumination_weight = 0.5    
+    if (brightness > threshold_brightness_high):
+        predicted_label = 1
+    elif (brightness < threshold_brightness_low):
+        predicted_label = 0
+    else:
+        illumination_value = night_illumination_weight(rgb_image)
+        if (illumination_value < threshold_illumination_weight):
+            predicted_label = 1
+        else:
+            predicted_label = 0
+    return predicted_label 
+```
