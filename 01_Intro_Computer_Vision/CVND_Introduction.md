@@ -41,7 +41,7 @@ pip install -r requirements.txt
 
 ## Overview of Contents
 
-1. Image Representation & Classification
+1. Image Representation & Classification (Lesson 4)
 	- CV Pipeline
 	- Training a model
 	- Separating data: Basic classification idea
@@ -61,7 +61,7 @@ pip install -r requirements.txt
 	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_4. Classification.ipynb`
 	- Evaluation Metrics#
 	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_5. Accuracy and Misclassification.ipynb`
-2. Convolutional Filters and Edge Detection
+2. Convolutional Filters and Edge Detection (Lesson 5)
 3. Types of Features and Image Segmentation
 4. Feature Vectors
 5. CNN Layers and Feature Visualization
@@ -73,7 +73,7 @@ pip install -r requirements.txt
 	- 8.3 Github
 	- 8.4 Skin Cancer Detection
 
-## 1. Image Representation & Classification
+## 1. Image Representation & Classification (Lesson 4)
 
 Since I know many concepts already, I will just jot down the keywords most of the time.
 
@@ -108,7 +108,7 @@ Example: Detect human emotions (Affectiva)
 - Image formation: pin-hole camera model
 - Pixelmaps:
 	- width x height, X x Y, row & column
-	- pixel values: 0 (dark/black) - 255 (light/white) = 2**8 = `int8`
+	- pixel values: 0 (dark/black) - 255 (light/white) = `2**8` = `int8
 	- 3 channels
 
 ### **Notebook**: `1_1_Image_Representation` / `1. Images as Numerical Data.ipynb`
@@ -524,3 +524,225 @@ def estimate_label_extended(rgb_image):
             predicted_label = 0
     return predicted_label 
 ```
+
+## 2. Convolutional Filters and Edge Detection (Lesson 5)
+
+### Filters
+
+Filters look at groups of pixels; these can be used to for example detect edges.
+
+### Frequency in Images
+
+- Fequency in images is rate of change
+	- High frequency: brightness or intensity changes a lot from one pixel to another; high fequency components are related to edges also
+	- Low frequency: few intensity changes between pixels
+
+- Images have usually both components: parts with high and low frequency
+
+- Fourier Transform
+	- Image decomposed into its frequency components
+	- Input of FT: image in spatial domain (x,y)
+	- Output of FT: image in frquency domain: each point is a frequency value for the pixel
+
+- Bandpass filters can be used: image thresholded according to frequencies which are not too low and too high
+
+### Fourier Transform
+
+See handwritten notes after article: [Fourier transforms of images, by Rachel Thomas](https://plus.maths.org/content/fourier-transforms-images).
+
+Image represented as `z = sum(a_i * sin(h_i*x + k_i*y)), i: 0 -> inf`:
+
+- `z`: gray value function, image
+- `x, y`: pixel coordinates
+- `h_i, k_i`: frequencies of wave `i`;
+	- `h/k`: slope of wave front
+	- the higher `h` or `k`, the higher the frequency
+	- `h` and `k` can be only `>= 0`
+- `a_i`: amplitude of wave `i`
+
+The image/plane of the fourier decomposition is the plane `(h, k, a)`:
+
+- Typically bright center: `(h,k) = 0, a high` = averga value of brighteness in image
+- Horizontal bright `h` axis: `k = 0, a high` = image with vertical structures (note it's contrary)
+- Vertical bright `k` axis: `h = 0, a high` = image with horizontal structures
+
+Notes:
+
+- Bright center in Fourier: solid colors in image, less change
+- More change and varying texture in the image: more noise in Fourier, brighter
+- Each pixel is not related to an image pixel!
+
+### **Notebook**: Fourier Transforms: `1_2_Convolutional_Filters_Edge_Detection` / `1. Fourier Transform.ipynb`
+
+Basically, this important function is used:
+
+```python
+	def ft_image(norm_image):
+	    '''This function takes in a normalized, grayscale image
+	       and returns a frequency spectrum transform of that image. '''
+	    f = np.fft.fft2(norm_image)
+	    fshift = np.fft.fftshift(f)
+	    frequency_tx = 20*np.log(np.abs(fshift)) 
+	    return frequency_tx
+```
+
+The passed image needs to be normalized grayscale!
+Returned image is the FT: intensity amplitudes in spatial 2D frequency domain
+
+```python
+image = cv2.imread('images/birds.jpg')
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+norm_image = gray/255.0
+
+f_image = ft_image(norm_image)
+
+f, (ax1,ax2) = plt.subplots(1, 2, figsize=(20,10))
+ax1.imshow(image)
+ax2.imshow(f_image, cmap='gray')
+```
+
+Interpretation notes
+
+- Bright point in center or brightest around center: image mostly solid colors, few texture, low frequencies.
+- If FT image has a horizontal bright line -> vertical structures in image, eg human beings.
+- If FT image has a vertical bright line -> horizontal structures in image.
+
+### High-Pass Filters & Convolution
+
+See handwritten notes.
+
+Filters used for either
+
+- removing unwanted features;
+- amplifying desired features.
+
+Filters usually use grayscale images.
+
+High-pass filters sharpen images, ie., enhance high frequency features, eg., edeges; edges are indeed areas where intensity changes very quickly.
+
+Convolution:
+
+- Kernel with weights passed through all pixel is image.
+- Weights multiplied to image patch and added to output center pixel value.
+- The higher the weight relative value, the bigger its relevance.
+- The spatial distribution of weight values in kernel defines the feature we want to enhance/remove.
+
+Image borders/edges can be handled in different ways:
+
+- Extend: las gray value extended
+- Padding: image padded with black pixels (grayvalue 0)
+- Cropping: output imgae is cropped
+
+
+### Gradients and Sobel Filters
+
+Important OpenCV functions: 
+
+- `filter2D()`: to apply a custom kernel to an image
+- `threshold()`: to convert the output to a binary image (0/255) using the appropriate threshold values
+
+Applying filters:
+
+- first apply lowpass filter to remove noise
+- then apply highpass filter to enhance features we want, eg vertical/horizontal edges
+
+Gradients are the image derivative, they measure intensity change.
+	
+Sobel filters = approximation of image intensity gradient
+
+```
+	sobel_x (X derivative for vertical lines)
+
+		-1 0 1
+		-2 0 2
+		-1 0 1
+	
+	sobel_y (Y derivative for horizontal lines)
+
+		-1 -2 -1
+		0 0 0
+		1 2 1
+
+	Magnitude: strongest lines found with magnitude
+
+		abs_sobel_x = sqrt(sobel_x^2)
+		abs_sobel_y = sqrt(sobel_y^2)
+		abs_sobel_xy = sqrt(sobel_x^2 + sobel_y^2) -> magnitude in both directions
+
+	Direction: angle of lines can be interesting to filter lines with an inclination bigger than a threshold
+
+		angle = atan(sobel_y / sobel_x)
+
+```
+
+### **Notebook**: Creating a Filter, Edge Detection: `1_2_Convolutional_Filters_Edge_Detection` / `2. Finding Edges and Custom Kernels.ipynb`
+
+A custom kernel is defined and filter/convolution applied with it.
+
+```python
+# Convert to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+# Define custom filter kernel
+sobel_y = np.array([[ -1, -2, -1], 
+               [ 0, 0, 0], 
+               [ 1, 2, 1]])
+# Apply convolution with custom kernel
+filtered_image_y = cv2.filter2D(gray, -1, sobel_y)
+# -1: ddepth; -1 means same bit-depth as input image
+```
+
+### Lowpass Filters: Gausssian Blur
+
+Usual procedure:
+
+1. Apply lowpass filters for removing noise
+2. Apply highpass filters to enhance features
+
+Lowpass kernels sum the neighboring pixels and the kernel sum must be 1!
+
+```
+Averaging filter
+
+	1 1 1
+	1 1 1 -> x (1/9) -> sum = 1
+	1 1 1
+
+Gaussian Blur: exponentially weighted sum; it removes high frequencies BUT preserves edges!
+
+	1 2 1
+	2 4 2 -> x (1/16) -> sum = 1
+	1 2 1
+
+```
+
+### **Notebook**: Gaussian Blur, Medical Images: `1_2_Convolutional_Filters_Edge_Detection` / `3. Gaussian Blur.ipynb`
+
+```python
+gray = cv2.cvtColor(image_copy, cv2.COLOR_RGB2GRAY)
+# 1. Apply lowpass filter: Gaussian blur
+# Kernel size: 9x9
+# Std deviation: 0 -> we can put it to 0, since it's computed internally
+gray_blur = cv2.GaussianBlur(gray, (9, 9), 0)
+# 2. Apply highpass filter: Sobel
+sobel_y = np.array([[ -1, -2, -1], 
+               [ 0, 0, 0], 
+               [ 1, 2, 1]])
+filtered_blurred = cv2.filter2D(gray_blur, -1, sobel_y)
+# Finally, we binarize image with appropriate thesholds
+retval, binary_image = cv2.threshold(filtered_blurred, 50, 255, cv2.THRESH_BINARY)
+```
+
+### **Notebook**: High and Low Pass Filters: `1_2_Convolutional_Filters_Edge_Detection` / `4. Fourier Transform on Filters.ipynb`
+
+Fourier Transform (FT) is applied on filters: the frequency ddecomposition of kernels is visualized.
+
+Additionally, FT applied on the original and filtered image; observations:
+
+- if image is blurred, FT image is bright in center; high frequencies are darker;
+- the bigger the kernel, the larger the filtering.
+
+## Convolutional Layer
+
+
+
