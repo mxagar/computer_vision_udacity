@@ -62,7 +62,7 @@ pip install -r requirements.txt
 	- Evaluation Metrics#
 	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_5. Accuracy and Misclassification.ipynb`
 2. Convolutional Filters and Edge Detection (Lesson 5)
-3. Types of Features and Image Segmentation
+3. Types of Features and Image Segmentation (Lesson 6)
 4. Feature Vectors
 5. CNN Layers and Feature Visualization
 6. Project 1: Facial Keypoint Detection
@@ -742,7 +742,200 @@ Additionally, FT applied on the original and filtered image; observations:
 - if image is blurred, FT image is bright in center; high frequencies are darker;
 - the bigger the kernel, the larger the filtering.
 
-## Convolutional Layer
+### Convolutional Layer
 
+Convolutional Neural Networks (CNNs) can have several concolutional layers. See handwritten notes & images.
 
+A convolutional layer is a stack of `n` images product of `n` convolutions with `n` filters; `n` = depth of convoutional layer.
+
+The weights of the kernels are learned during training, but they converge to be:
+
+- lowpass filters, eg., for filtering out irrelevant info and compress image
+- highpass filters, eg., for enhancing relevant features like edges
+
+Other layers appear also in CNNs:
+
+- (convolutional)
+- pooling
+- fully connected
+- finally, class is predicted
+
+### Canny Edge Detector
+
+Algorithm for robustly detecting most important edges no matter how thick they are.
+
+Four steps internally
+
+1. Gaussian blur for removing noise
+2. Sobel X & Y for detecting strength and direction of edges
+3. Strongest edges selected and thinned
+4. Hysteresis thresholding applied: thresholding with 2 values and 3 region
+	- above: strong edges, taken
+	- -- high threshold: recommended 1x-3x lower
+	- between: candidate edges -> taken only if they are connected to a strong edge
+	- -- low threshold: the lower, the more edges taken; eg, start with middle of grayscale range
+	- below: not taken
+
+![Canny Edge Detection](./pics/canny_edge_detection.png)
+
+### **Notebook**: Canny Edge Detection: `1_2_Convolutional_Filters_Edge_Detection` / `5. Canny Edge Detection.ipynb`
+
+Canny operator/function is applied to a gray image.  
+Low & high thresholds can be manually tuned.  
+A histogram of the gray image helps to see where to set the thresholds.
+
+```python
+gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+max_gray = np.amax(gray)
+min_gray = np.amin(gray)
+lower = 60
+upper = 180
+edges = cv2.Canny(gray, lower, upper) # A binary image returned
+```
+
+### Shape Detection
+
+We go beyond edges and start identifying shapes like lines or circles.
+The **Hough Transformation** makes that possible.
+
+### Hough Transform for Line Detection
+
+See handwritten notes.
+
+Hough transform transforms analytical shapes from image space into parameter or Hough space.
+
+It can be used to detect line segments and circles after edge detection was performed.
+
+Example: Line
+
+- Image space: (x,y): y = mx +b
+- Parameter space: (m,b)
+- A better parameter space: Polar (r,theta): xcos(theta)+ysin(theta)=r -> (r,theta)
+
+Main ideas:
+
+- points in Hough space are lines in image space
+- intersecting points in Hough space are discontinuous line segments in image space
+
+Internal computation:
+
+- Hough space is divided in cells
+- Image is processed with edge detector (eg, Canny), and each point (x,y) is transformed in (r,theta)
+- Cells that have many counts contain likely a discontinuous line
+
+```python
+cv2.HoughLinesP()
+# Parameters:
+# rho = 1 # Hough space discretization resolution
+# theta = np.pi/180 # Hough space discretization resolution
+# threshold = 60 # Minimum cell counts to consider point as discontinued line segment
+# min_line_length = 50 # min line length
+# max_line_gap = 5 # max gap between discontinuities
+```
+
+### **Notebook**: `1_2_Convolutional_Filters_Edge_Detection` / `Hough lines.ipynb`, `Hough circles, agriculture.ipynb`
+
+Application example of the Hough transform using OpenCV.
+
+```python
+# 1. Corvert image to grayscale and apply Canny
+gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+low_threshold = 50
+high_threshold = 100
+edges = cv2.Canny(gray, low_threshold, high_threshold) # binary image returned
+
+# 2. Apply Hough: note that the binary Cannied image is passed
+rho = 1
+theta = np.pi/180
+threshold = 60
+min_line_length = 50
+max_line_gap = 5
+line_image = np.copy(image)
+lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]),
+                        min_line_length, max_line_gap)
+
+# 3. Display
+for line in lines:
+    for x1,y1,x2,y2 in line:
+        cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),5)        
+plt.imshow(line_image)
+```
+
+For circles, no Cannied images are passed, but the gray blurred image!
+
+```python
+circles = cv2.HoughCircles(gray_blur,
+					   cv2.HOUGH_GRADIENT, # detection method (Hough gradient)
+					   1, # resolution factor between the detection and image
+                       minDist=40, # the minimum distance between circles
+                       param1=70, # the higher value for performing Canny edge detection
+                       param2=11, # threshold for circle detection, smaller value more circles
+                       minRadius=25,
+                       maxRadius=30)
+```
+
+### Object Detection
+
+We've seen how to detect: Edges -> Shapes: Lines & Circles. Now, we can start combining that detected information to detect corners or even objects.
+
+### Object Recognition: Haar Cascades
+
+See handwritten notes.
+
+Several specific Kernels are defined which target relevant features and the following steps are followed:
+
+- The image is convouted with these Kernels one after the other, in a cascade.
+- After applying a kernel, a classifier is applied to select and reject regions that might contain the searched object, eg., a face.
+- The selected region is convoluted with the next Kernel and the process repeats.
+
+The difference with CNNs is that we pass few large and pre-defined kernels to the image, we compute the features extracted by each kernel and apply a classifier. Additionally, after passing a kernel, a decission is taken: does the region contain a face or not. if not, the are is not further processed!
+
+![Haar Cascades](./pics/haar_cascades.png)
+
+The classifiers are trained with yes/no images beforehand: faces and no-faces.
+
+The approach is typical for face detection; see the original paper by LaViola & Jones.
+
+The trained classifiers are available as XML in OpenCV.
+
+The algorithm has realtime (video, 30Hz) performance, because regions are discarded very fast.
+
+### **Notebook**: Face Detection Using OpenCV: `1_2_Convolutional_Filters_Edge_Detection` / `7. Haar Cascade, Face Detection.ipynb`
+
+Image with people looking at the camera in which faces are detected.
+
+```python
+# Convert to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# Trained classifier is loaded
+face_cascade = cv2.CascadeClassifier('detector_architectures/haarcascade_frontalface_default.xml')
+# Haar Cascades, parameters:
+# image (must be gray)
+# scaleFactor -> if smaller, more faces
+# minNeighbors -> raising this, usually better results
+faces = face_cascade.detectMultiScale(gray, 4, 6)
+img_with_detections = np.copy(image)
+# Draw face rectangles
+for (x,y,w,h) in faces:
+    cv2.rectangle(img_with_detections,(x,y),(x+w,y+h),(255,0,0),5)  
+plt.imshow(img_with_detections)
+```
+
+### Bias
+
+[Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification, by Buolamwini and Gebru](https://video.udacity-data.com/topher/2018/June/5b2c01ba_gender-shades-paper/gender-shades-paper.pdf)
+
+How data is labelled influences the quality of the prediction.  
+Our biases go into the data and the labelling, therefore the prediction is biased.  
+We need to be critical with our decissions.
+
+### Features
+	
+We want to detect the smallest set of features which help us classify our images.
+
+Most features can be classified as (1) color or (2) shape.
+
+Example of how to combine features: [Teaching Cars To See — Advanced Lane Detection Using Computer Vision, Blog Post](https://towardsdatascience.com/teaching-cars-to-see-advanced-lane-detection-using-computer-vision-87a01de0424f). This is a Project 4 of Term 1 of Udacity Self-Driving Car Engineer Nanodegree: Advanced Lane Detection Using Computer Vision.
+
+## 3. Types of Features and Image Segmentation (Lesson 6)
 
