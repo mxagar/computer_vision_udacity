@@ -61,10 +61,55 @@ pip install -r requirements.txt
 	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_4. Classification.ipynb`
 	- Evaluation Metrics#
 	- **Notebook**: Day & Night Classifier: `1_1_Image_Representation` / `6_5. Accuracy and Misclassification.ipynb`
+
 2. Convolutional Filters and Edge Detection (Lesson 5)
+	- Filters
+	- Frequency in Images
+	- Fourier Transform
+	- **Notebook**: Fourier Transforms: `1_2_Convolutional_Filters_Edge_Detection` / `1. Fourier Transform.ipynb`
+	- High-Pass Filters & Convolution
+	- Gradients and Sobel Filters
+	- **Notebook**: Creating a Filter, Edge Detection: `1_2_Convolutional_Filters_Edge_Detection` / `2. Finding Edges and Custom Kernels.ipynb`
+	- Lowpass Filters: Gausssian Blur
+	- **Notebook**: Gaussian Blur, Medical Images: `1_2_Convolutional_Filters_Edge_Detection` / `3. Gaussian Blur.ipynb`
+	- **Notebook**: High and Low Pass Filters: `1_2_Convolutional_Filters_Edge_Detection` / `4. Fourier Transform on Filters.ipynb`
+	- Convolutional Layer
+	- Canny Edge Detector
+	- **Notebook**: Canny Edge Detection: `1_2_Convolutional_Filters_Edge_Detection` / `5. Canny Edge Detection.ipynb`
+	- Shape Detection
+	- Hough Transform for Line Detection
+	- **Notebook**: `1_2_Convolutional_Filters_Edge_Detection` / `Hough lines.ipynb`, `Hough circles, agriculture.ipynb`
+	- Object Detection
+	- Object Recognition: Haar Cascades
+	- **Notebook**: Face Detection Using OpenCV: `1_2_Convolutional_Filters_Edge_Detection` / `7. Haar Cascade, Face Detection.ipynb`
+	- Bias
+	- Features
+	
 3. Types of Features and Image Segmentation (Lesson 6)
-4. Feature Vectors
-5. CNN Layers and Feature Visualization
+	- Types of Features
+	- Corner Detectors: Harris Corner detector
+	- **Notebook**: `1_3_Types_of_Features_Image_Segmentation` / `1. Harris Corner Detection.ipynb`
+	- Morphological operations: Dilation, Erosion, Opening, Closing
+	- Contours
+	- **Notebook**: `1_3_Types_of_Features_Image_Segmentation` / `2. Contour detection and features.ipynb`
+	- Contour Features
+	- K-Means Segmentation
+	- **Notebook**: `1_3_Types_of_Features_Image_Segmentation` / `3. K-means.ipynb`
+
+4. Feature Vectors (Lesson 7)
+	- ORB = Oriented FAST and rotated BRIEF
+	- FAST = Features from Accelerated Segment Test
+	- BRIEF = Binary Robust Independent Elementary Features
+	- Scale and rotation invariance
+	- Forum Question: ORB
+	- **Notebook**: `1_4_Feature_Vectors` / `1. Image Pyramids.ipynb`
+	- Feature Matching
+	- ORB in video
+	- **Notebook**: `1_4_Feature_Vectors` / `2. ORB.ipynb`
+	- HOG = Histogram of Oriented Gradients
+	- **Notebook**: `1_4_Feature_Vectors` / `3_1. HOG.ipynb`
+
+5. CNN Layers and Feature Visualization (Lesson 8)
 6. Project 1: Facial Keypoint Detection
 7. Project 2: Github
 8. Extra modules
@@ -938,4 +983,592 @@ Most features can be classified as (1) color or (2) shape.
 Example of how to combine features: [Teaching Cars To See — Advanced Lane Detection Using Computer Vision, Blog Post](https://towardsdatascience.com/teaching-cars-to-see-advanced-lane-detection-using-computer-vision-87a01de0424f). This is a Project 4 of Term 1 of Udacity Self-Driving Car Engineer Nanodegree: Advanced Lane Detection Using Computer Vision.
 
 ## 3. Types of Features and Image Segmentation (Lesson 6)
+
+### Types of Features
+
+Typical features can be
+
+1. Edges: high intensity gradients or changes
+2. Blobs: image regions with specific intensity/texture
+3. Corners: intersections of edges, they occur when gradient magnitude and direction change
+
+CORNERS are the one of the most important features because they help find unique parts of the image!
+
+### Corner Detectors: Harris Corner detector
+
+Large changes in imge grayvalue gradient magnitude and direction are found.
+Mini-window is slightly shifted with a small displacement on a candidate region.
+Gradient magnitude and direction are
+
+- `sqrt(Sx^2 + Sy^2); S: image filtered with Sobel`
+- `atan(Sy/Sx)`
+
+If they change considerably, the candidate region is a corner!
+
+### **Notebook**: `1_3_Types_of_Features_Image_Segmentation` / `1. Harris Corner Detection.ipynb`
+
+In the notebook, the corners of a waffle are found using the Harris corner detection algorithm.
+
+```python
+gray = cv2.cvtColor(image_copy, cv2.COLOR_RGB2GRAY)
+gray = np.float32(gray) # image needs to be gray and float32
+
+dst = cv2.cornerHarris(gray, 2, 3, 0.04)
+	# 2: block/window size: 2 pixels
+	# 3: Sobel kernel size
+	# 0.04: free Harris parameter; this is a typical value; lower, more corners
+	# dst: image with corner scores per pixel
+dst = cv2.dilate(dst,None)
+	# typical to use this morphological operator, to see corners clearly
+
+# Manual threshold to filter what's a corner in dst; the smaller, the more corners
+thresh = 0.15*dst.max()
+corner_image = np.copy(image_copy)
+
+# All pixels are visited - that's very inefficient!
+for j in range(0, dst.shape[0]):
+    for i in range(0, dst.shape[1]):
+        if(dst[j,i] > thresh):
+            cv2.circle( corner_image, (i, j), 1, (0,255,0), 1)
+plt.imshow(corner_image)
+```
+
+### Morphological operations: Dilation, Erosion, Opening, Closing
+
+```python
+# Reads in a binary image
+image = cv2.imread('image.png', 0) 
+kernel = np.ones((5,5),np.uint8)
+
+dilation = cv2.dilate(image, kernel, iterations = 1)
+erosion = cv2.erode(image, kernel, iterations = 1)
+opening = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+	# erosion + dilation
+	# remove salt noise
+closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+	# dilation + erosion
+	# close holes/gaps, remove pepper noise
+```
+
+### Contours
+
+Contours are continuous closed boundaries that contain objects/shapes.
+They are computed after binary threshold/edge computation.
+They provide info on contour features:
+
+- area
+- shape
+- center
+- perimeter
+- bounding box
+
+Best to detect contours: white backgorund and apply an inverse threshold.
+
+### **Notebook**: `1_3_Types_of_Features_Image_Segmentation` / `2. Contour detection and features.ipynb`
+
+Notebook in which the contours of a hand are found.
+Note that the image needs to be binarized: contours of images with black background and white object are found!
+
+```python
+gray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
+retval, binary = cv2.threshold(gray, 225, 255, cv2.THRESH_BINARY_INV)
+	# white background: complement of white threshold (255) is selected with inverse threshold
+retval, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+	# contours are found with black background and white object!
+	# contours: list of numpy arrays - each array contains the (x,y) coordinates of the boundary points; if we join them, we draw the contours
+	# cv2.CHAIN_APPROX_SIMPLE: approximation method; here only necessary points will be stored, and later joined with lines
+	# hierarchy: hierarchical relationship between contours
+	#	hierarchy type controlled with retrieval mode: cv2.RETR_TREE, cv2.RETR_LIST, ...
+	#	the hierarchy is an array of these lists: [Next, Previous, First_Child, Parent]; each element is a contour id: -1 (none), 0, 1, ...
+	#	hierarchy levels: outer contours are top levels, going down as we contain contours
+contours_image = np.copy(image)
+contours_image = cv2.drawContours(contours_image, contours, -1, (0,255,0), 3)
+	#-1: draw all contours
+	#(0,255,0), 3: color & thickness
+plt.imshow(contours_image)
+```
+
+### Contour Features
+
+Contours provide many shape features; some of them are listed here
+
+	Moments
+		M = cv2.moments(cnt)
+		m00 = M['m00']
+		m10 = M['m10']
+		M: dictionary with all moments
+	Contour Area
+		area = cv2.contourArea(cnt)
+	Contour Perimeter
+		perimeter = cv2.arcLength(cnt,True)
+			True: closed contour
+	Convex Hull
+		hull = cv2.convexHull(cnt)
+	Convexity
+		k = cv2.isContourConvex(cnt)
+	Bounding Rectangle: AABB
+		x,y,w,h = cv2.boundingRect(cnt)
+		img = cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
+	Bounding Rectangle: OBB
+		rect = cv2.minAreaRect(cnt)
+		box = cv2.boxPoints(rect)
+		box = np.int0(box)
+		im = cv2.drawContours(im,[box],0,(0,0,255),2)
+	Minimum Enclosing Circle
+		(x,y),radius = cv2.minEnclosingCircle(cnt)
+		center = (int(x),int(y))
+		radius = int(radius)
+		img = cv2.circle(img,center,radius,(0,255,0),2)
+	Fitting an Ellipse
+		ellipse = cv2.fitEllipse(cnt)
+		im = cv2.ellipse(im,ellipse,(0,255,0),2)
+	Fitting a Line
+		rows,cols = img.shape[:2]
+		[vx,vy,x,y] = cv2.fitLine(cnt, cv2.DIST_L2,0,0.01,0.01)
+		lefty = int((-x*vy/vx) + y)
+		righty = int(((cols-x)*vy/vx)+y)
+		img = cv2.line(img,(cols-1,righty),(0,lefty),(0,255,0),2)
+	Aspect Ratio
+		x,y,w,h = cv2.boundingRect(cnt)
+		aspect_ratio = float(w)/h
+	Extent
+		area = cv2.contourArea(cnt)
+		x,y,w,h = cv2.boundingRect(cnt)
+		rect_area = w*h
+		extent = float(area)/rect_area
+	Solidity
+		area = cv2.contourArea(cnt)
+		hull = cv2.convexHull(cnt)
+		hull_area = cv2.contourArea(hull)
+		solidity = float(area)/hull_area
+	Equivalent Diameter
+		area = cv2.contourArea(cnt)
+		equi_diameter = np.sqrt(4*area/np.pi)
+	Orientation		
+		(x,y),(MA,ma),angle = cv2.fitEllipse(cnt)
+	Mean Color or Mean Intensity
+		mean_val = cv2.mean(im,mask = mask)
+
+### K-Means Segmentation
+
+See handwritten notes.
+
+Unsupervised learning algorithm (no labelling needed) with which data-points can be grouped according to similarity in the feature space. That similarity is measured with the distance between the data points.
+The number of segmentation groups or clusters is defined: `k`
+
+Example: image color segmentation. Algorithm:
+
+1. Image pixels `(x,y)` transformed/represented to RGB feature space: `(r,g,b)`
+2. Algorithm starts setting `k` random center points in feature space: `C_k`; better choose `k` random data points.
+3. Each data point is assigned to closest centerpoint `C_k`.
+4. After the clustering of points, cluster center point `C_k` is redefined to be in center of cluster.
+5. Repeat steps 2 & 3.
+
+The algoritm is expected to converge if there's an underlying structure. Stop criteria:
+
+- number of iterations,
+- if center point C_k change below a threshold.
+
+
+### **Notebook**: `1_3_Types_of_Features_Image_Segmentation` / `3. K-means.ipynb`
+
+Very important notebook, because the reshaping and masking operations are not that straightforward
+but they produce basic output that everyone should be able to handle!
+
+```python
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+# Reshape image into a 2D array of pixels and 3 color values (RGB): (2000, 3008, 3) -> (6016000, 3): pixel, RGB
+pixel_vals = image.reshape((-1,3))
+# Convert to float type
+pixel_vals = np.float32(pixel_vals)
+
+# stopping criteria: either error or num iterations -> 10 iterations, eps = 1 RGB value
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1)
+k = 3
+retval, labels, centers = cv2.kmeans(pixel_vals, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+	# labels: pixel,label: 6016000x1: (pixel-id,cluster-id:0/1/2)
+	# centers: RGB means: 3x3: (cluster-id,RGB)
+
+# convert data into 8-bit values
+centers = np.uint8(centers)
+segmented_data = centers[labels.flatten()]
+	# for each pixel-id its mean RGB assigned according to its cluster-id...
+	# segmented_data: 6016000x3: (pixel-id,RGB)
+
+# reshape data into the original image dimensions
+segmented_image = segmented_data.reshape((image.shape))
+labels_reshape = labels.reshape(image.shape[0], image.shape[1])
+
+# Binary image visualization of each cluster/label
+plt.imshow(labels_reshape==2, cmap='gray')
+
+# Masked visualization on org image of a cluster/label
+masked_image = np.copy(image)
+masked_image[labels_reshape == 1] = [0, 255, 0]
+plt.imshow(masked_image)
+```
+
+## 4. Feature Vectors (Lesson 7)
+
+A feature vector is a vector of several features that can be used to detect whole objects or significant parts of them.
+Feature vectors are also called **feature descriptors**.
+
+Example: we tesselate an image in `3 x 3` cells and for each cell we compute the gradient direction; then the 9 directions are assembled in a vector.
+
+![Gradient feature vector](./pics/gradient_feature_vector.png)
+
+This section deals with two important algorithms that implement feature vectors:
+
+- ORB = Oriented FAST and Rotated BRIEF; used for **matching known patterns**.
+- HOG = Histogram of Oriented Gradients; used for **detecting object classes**.
+
+### ORB = Oriented FAST and rotated BRIEF
+	
+State-of-the-Art algorithm for feature detection, implemented in OpenCV:
+
+> ORB: An efficient alternative to SIFT or SURF. Ethan Rublee; Vincent Rabaud; Kurt Konolige; Gary Bradski. 2011.
+
+See handwritten notes to understand how it works!
+
+It works in 2 steps:
+
+1. FAST is applied for feature or keypoint detection
+2. BRIEF used for feature vector creation
+
+ORB is very fast and
+
+- scale invariant
+- rotation invariant
+- illumination invariant
+- noise invariant
+
+### FAST = Features from Accelerated Segment Test
+
+First step of ORB (pattern matching).
+
+Algorithm to determine whether a pixel is a keypoint.
+A set of 16 pixels in the circumference of a pixel `P` is analized.
+If 8 connected pixels in the circumference are brighter or darker than `P`, `P` is a keypoint:
+
+- A threshold `h` is defined.
+- All pixels are classified in 3 groups:
+	- Intensity `I < I(P)-h`: DARKER
+	- Intensity `I > I(P)+h`: BRIGHTER
+	- INtensity: `I(P)-h < I < I(P)+h`: SIMILAR
+
+A faster version analyzes only 4 pixels: if a pair is brighter or darker, `P` is a keypoint. This allows for very fast computations.
+
+The keypoints found by FAST are associated with pixels that are surrounded by intensity changes; these appear often at edges that define shapes - that's what we want! However, we have only the location, the orientation is missing yet.
+
+![FAST](./pics/FAST.png)
+
+### BRIEF = Binary Robust Independent Elementary Features
+
+Algorithm to create a feature vector given an identified keypoint.  
+For each keypoint `k`, a bit-string of length `N` is created
+
+	V_k = [01101001...]
+
+`N` varies from 128 to 512 (usual value: 256).  
+Each bit corresponds to the comparison of **two random pixels** around keypoint `k`:
+
+- First random pixel: randomly picked with a Gaussian centered in `k` and spread `sigma`.
+- Second random pixel: randomly picked with a Gaussian centered in the first random pixel and spread `sigma/2`.
+
+Bit value: if `Intensity(first random pixel) > Intensity(second random pixel) -> 1, 0 otherwise`.  
+All `N` bits are then sequentially assembled.  
+Note that th eimage is blurred before computing the feature descriptors in order to filter out high frequency noise.
+
+The advantage of using bit-strings as feature descriptors is that they can be computed, handled and stored very efficiently.
+
+For each keypoint detected by FAST, a binary feature descriptor or vector of `N` bits is computed using BRIEF.
+
+![BRIEF](./pics/BRIEF.png)
+
+### Scale and rotation invariance
+
+FAST and BRIEF as explained so far cannot handle different sizes and orientations.  
+ORB introduced that scale and rotation invariance as explained in the following.
+
+To solve the **scaling** issues, image pyramids are created:
+
+- level 0: original image
+- level 1: resolution x 1/2
+- level 2: resolution x 1/4
+- ...
+
+![Image Pyramids](./pics/image_pyramids.png)
+
+Then, keypoints are are transformed/located into the different levels of the pyramids, i.e., we have different scales.
+
+To achieve **rotation invariance**, the BRIEF descriptors are modified to be rotation aware BRIEF (rBRIEF) as follows:
+
+- For each keypoint, its orientation is computed:
+	- Given a keypoint, the intensity centroid in its patch is measured
+	- The orientation is the angle of the centroid wrt x axis
+	- Note that patch sizes are constant at all scale levels; thus high levels have larges patch sizes
+- BRIEF computation is modified to be Rotation aware BRIEF, RBRIEF:
+	- We start as with BRIEF: `N` pairs of random points are created around keypoint
+	- The set of N pairs is rotated the orientation of the keypoint
+	- The descriptor is computed with the rotated pixel pairs
+
+![Rotation Aware BRIEF](./pics/rBRIEF.png)
+
+### Forum Question: ORB
+
+In order to achieve scale and rotation invariance in ORB, image pyramids are used to place the FAST keypoints in images of reduced resolutions and the pixel pairs used in by FAST are rotated the angle of the centroid in their patch.
+
+However, given the fact that the pixel pairs are random, why do we need to rotate? Rotating would imply that pixel pair locations are the same every time. That implies they are random *only* the first time they are computed -- in later computations of the same keypoint (e.g., when trying to find it on an image) should produce the same random pixel pairs. I understand this can be achieved either (1) by storing the pixel pair locations or (2) using a pseudo-random distribution which yields the same random locations given the same seed.
+
+Am I correct?
+
+Thank you,
+Mikel
+
+#### Answer
+
+Yes, the same random points are used.
+
+[Feature matching using ORB algorithm in Python-OpenCV](https://www.geeksforgeeks.org/feature-matching-using-orb-algorithm-in-python-opencv/)
+
+### **Notebook**: `1_4_Feature_Vectors` / `1. Image Pyramids.ipynb`
+
+An image and its lower resolution versions are displayed.
+
+```python
+level_1 = cv2.pyrDown(image)
+
+f, (ax1,ax2) = plt.subplots(1, 2, figsize=(20,10))
+ax1.set_title('original')
+ax1.imshow(image)
+ax2.imshow(level_1)
+ax2.set_xlim([0, image.shape[1]])
+ax2.set_ylim([image.shape[0], 0])
+```
+
+### Feature Matching
+
+We distinguish: 
+
+- The training image: used to compute the ORB descriptors (keypoints + feature vectors); the model can be saved.
+- The query image: image where we look for templates the of training image.
+	
+The matching works as follows:
+
+- Keypoints and their feature descriptors from query image are computed
+- Keypoints and their feature descriptors from template are compared against keypoints from query image
+- The comparison is done with a metric that accounts for the similarity; for binary vectors, the **Hamming distance** can be used
+	- Hamming distance (between two strings of equal length) = the number of positions at which the corresponding symbols are different; the lower, the more similar
+- Then, best keypoint matches are returned
+
+Then, we need to account for some thresholds of number of matches, etc. For instance: `35%` threshold means that `35%` of template keypoints must match with a set in the query image so as to state that the template object is in the frame / query image.
+
+### ORB in video
+	
+ORB can be used in videos because it's very fast.  
+Applications:
+
+- car detection and tracking
+- face identification and tracking (faces are quite consistent)
+- concrete well defined objects not influenced by background
+
+BUT: ORB doesn't work that well for general object detection.
+
+### **Notebook**: `1_4_Feature_Vectors` / `2. ORB.ipynb`
+
+The ORB algorithm is showcased.
+
+This notebook is quite large and the usage of ORB seems a bit tedious.
+
+The parts related to the ORB descriptor computation and matching are the following:
+
+```python
+# Feature descriptor creation in the template image
+orb = cv2.ORB_create(nfeatures = 1000,
+           scaleFactor = 2,
+           nlevels = 8,
+           edgeThreshold = 31,
+           firstLevel = 0,
+           WTA_K = 2,
+           scoreType = HARRIS_SCORE,
+           patchSize = 31,
+           fastThreshold = 20)
+keypoints, descriptor = orb.detectAndCompute(training_gray, None)
+cv2.drawKeypoints(training_image, keypoints, keyp_with_size, flags = cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+plt.imshow(keyp_with_size)
+
+# Matching
+bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck = True)
+matches = bf.match(descriptors_train, descriptors_query)
+matches = sorted(matches, key = lambda x : x.distance)
+result = cv2.drawMatches(training_gray, keypoints_train, query_gray, keypoints_query, matches[:100], query_gray, flags = 2)
+plt.imshow(result)
+```
+
+The most important parameters of ORB object creation are:
+
+- `nfeatures`: max number of features to locate
+- `scaleFactor`: pyramid decimation ratio; shoudl be > 1, usually 2 is taken
+
+Use default values for the rest.
+
+In the following, the code of the notebook is provided; however, better look at the notebook.
+
+```python
+import cv2
+import matplotlib.pyplot as plt
+
+# Set the default figure size
+plt.rcParams['figure.figsize'] = [14.0, 7.0]
+
+# Load the training image
+image1 = cv2.imread('./images/face.jpeg')
+
+# Load the query image
+image2 = cv2.imread('./images/Team.jpeg')
+
+# Convert the training image to RGB
+training_image = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
+
+# Convert the query image to RGB
+query_image = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
+
+# Display the images
+plt.subplot(121)
+plt.imshow(training_image)
+plt.title('Training Image')
+plt.subplot(122)
+plt.imshow(query_image)
+plt.title('Query Image')
+plt.show()
+
+######
+
+# Set the default figure size
+plt.rcParams['figure.figsize'] = [34.0, 34.0]
+
+# Convert the training image to gray scale
+training_gray = cv2.cvtColor(training_image, cv2.COLOR_BGR2GRAY)
+
+# Convert the query image to gray scale
+query_gray = cv2.cvtColor(query_image, cv2.COLOR_BGR2GRAY)
+
+# Set the parameters of the ORB algorithm by specifying the maximum number of keypoints to locate and
+# the pyramid decimation ratio
+orb = cv2.ORB_create(5000, 2.0)
+
+# Find the keypoints in the gray scale training and query images and compute their ORB descriptor.
+# The None parameter is needed to indicate that we are not using a mask in either case.  
+keypoints_train, descriptors_train = orb.detectAndCompute(training_gray, None)
+keypoints_query, descriptors_query = orb.detectAndCompute(query_gray, None)
+
+# Create copies of the query images to draw our keypoints on
+query_img_keyp = copy.copy(query_image)
+
+# Draw the keypoints with size and orientation on the copy of the query image
+cv2.drawKeypoints(query_image, keypoints_query, query_img_keyp, flags = cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+# Display the query image with the keypoints with size and orientation
+plt.title('Keypoints With Size and Orientation', fontsize = 30)
+plt.imshow(query_img_keyp)
+plt.show()
+
+######
+
+# Print the number of keypoints detected
+print("\nNumber of keypoints Detected: ", len(keypoints_query))
+
+# Set the default figure size
+plt.rcParams['figure.figsize'] = [34.0, 34.0]
+
+# Create a Brute Force Matcher object. We set crossCheck to True so that the BFMatcher will only return consistent
+# pairs. Such technique usually produces best results with minimal number of outliers when there are enough matches.
+bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck = True)
+
+# Perform the matching between the ORB descriptors of the training image and the query image
+matches = bf.match(descriptors_train, descriptors_query)
+
+# The matches with shorter distance are the ones we want. So, we sort the matches according to distance
+matches = sorted(matches, key = lambda x : x.distance)
+
+# Connect the keypoints in the training image with their best matching keypoints in the query image.
+# The best matches correspond to the first elements in the sorted matches list, since they are the ones
+# with the shorter distance. We draw the first 85 mathces and use flags = 2 to plot the matching keypoints
+# without size or orientation.
+result = cv2.drawMatches(training_gray, keypoints_train, query_gray, keypoints_query, matches[:85], query_gray, flags = 2)
+
+# we display the image
+plt.title('Best Matching Points', fontsize = 30)
+plt.imshow(result)
+plt.show()
+
+# Print the number of keypoints detected in the training image
+print("Number of Keypoints Detected In The Training Image: ", len(keypoints_train))
+
+# Print the number of keypoints detected in the query image
+print("Number of Keypoints Detected In The Query Image: ", len(keypoints_query))
+
+# Print total number of matching Keypoints between the training and query images
+print("\nNumber of Matching Keypoints Between The Training and Query Images: ", len(matches))
+```
+
+### HOG = Histogram of Oriented Gradients
+
+HOG descriptor: feature vector that contains all gradient histograms of the cells of an image
+
+- The image is divided in square cells that contain pixels
+- Image gradients are computed: direction & magnitude
+- For each cell, a histogram of gradient direction is assembled, weighted with magnitude
+- Cells are grouped in blocks
+	- The histograms of each block are normalized together; therefore, edges can be detected in each block reliably
+	- Blocks usually overlap
+- All normalized histograms are packed in a vector: the HOG descriptor
+- NOTE: the number of histograms in the HOG descriptor is not the number of cells, but num blocks x cells per block; thus, most cell histograms appear several times with a different normalization
+
+![HOG](./pics/HOG.png)
+
+A classifier can be trained with feature vectors; e.g., a Support Vector Machine (SVM)
+
+- HOG descriptors of an object class are trained along with descriptors of other classes
+- The classifier learns the object class
+- Object detection happens by sliding a window through image: the HOG descriptor of the window is computed and tested with classifier
+
+![HOG Block Normalization](./pics/HOG_2.png)
+
+### **Notebook**: `1_4_Feature_Vectors` / `3_1. HOG.ipynb`
+
+In the notebook, the HOG descriptor is computed visualized and extensive details are given.  
+All that is in reality unnecessary, it's done for learning reasons.  
+In practice, the following call would be enough to create the HOG descriptors, which are then used for training a classifier.
+
+```python
+hog = cv2.HOGDescriptor(win_size = (64, 128),  
+              block_size = (16, 16),  
+              block_stride = (8, 8),  
+              cell_size = (8, 8),  
+              nbins = 9,  
+              win_sigma = DEFAULT_WIN_SIGMA,  
+              threshold_L2hys = 0.2,  
+              gamma_correction = true,  
+              nlevels = DEFAULT_NLEVELS)
+hog_descriptor = hog.compute(gray_image)
+```
+
+The most important parameters:
+
+- `block_size`: the smaller the block, the finer the details
+- `block_stride`: allow overlap
+- `cell_size`: the smaller the cell, the finer the details
+- `nbins`: more bins capture more angular directions; unsigned directions used: 0-180
+
+The rest can be left with default values:
+
+- `win_size`: ROI or window of detection for later 
+- `win_sigma`: Gaussian blur improves HOG
+- `threshold_L2hys`: normalization method
+- `gamma_correction`: gamma correction slightly improves HOG
+
+The length of the HOG descriptor is computed in the notebook manually, using formulas.
+
+## 5. CNN Layers and Feature Visualization (Lesson 8)
 

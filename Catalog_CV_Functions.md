@@ -5,7 +5,7 @@ Most functions are from OpenCV, but some other packages are also considered.
 Methods are listed in python; partial in context is also provided in some cases.
 Knowledge of CV is assumed - this is basically a list of functions with some sontext examples!
 
-No warranties.
+No guaranties.  
 Mikel Sagardia, 2022.
 
 ## Overview of Contents
@@ -238,11 +238,13 @@ success, roi = tracker.update(frame)
 ## Context: Image Representation
 
 ```python
+# Imports
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 %matplotlib inline
 
+# Load image + access channels
 image = cv2.imread('./image.jpg')
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -253,6 +255,7 @@ blue_channel = image[:,:,2]
 image.shape
 img_resized = cv2.resize(image, (1100,600))
 
+# Display
 plt.figure(figsize=(20,10))
 plt.imshow(gray_image, cmap='gray')
 
@@ -261,6 +264,7 @@ ax1.imshow(red_channel, cmap='gray')
 ax2.imshow(green_channel, cmap='gray')
 ax3.imshow(blue_channel, cmap='gray')
 
+# RGB Thresholding, Masking
 lower_blue = np.array([0,0,220]) 
 upper_blue = np.array([220,220,255])
 mask = cv2.inRange(image, lower_blue, upper_blue)
@@ -268,11 +272,17 @@ masked_image = np.copy(image)
 masked_image[mask != 0] = [0, 0, 0]
 croped_masked_image = masked_image[0:514, 0:816]
 
+# Convert (W, H, C) to (pixel, C)
+pixel_vals = image.reshape((-1,3))
+pixel_vals = np.float32(pixel_vals)
+
+# Compute color histograms
 color = ('r','g','b')
 for i,col in enumerate(color):
 	hist = cv2.calcHist([image],channels=[i],mask=None,histSize=[256],ranges=[0,256])
 	plt.plot(hist,col)
 
+# Color maps
 hsv = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
 sum_brightness = np.sum(hsv[:,:,2])
 num_pixels = hsv.shape[0]*hsv.shape[1]
@@ -286,6 +296,7 @@ plt.hist(brightness_night, alpha = 0.5)
 
 ```python
 
+# FFT
 def ft_image(norm_image):
     f = np.fft.fft2(norm_image)
     fshift = np.fft.fftshift(f)
