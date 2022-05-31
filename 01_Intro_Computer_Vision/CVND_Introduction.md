@@ -37,6 +37,11 @@ conda install pip
 # Go to the folder where the Udacity DL exercises are cloned, after forking the original repo
 cd ~/git_repositories/CVND_Exercises
 pip install -r requirements.txt
+# I had some issues with numpy and torch
+pip uninstall numpy
+pip uninstall mkl-service
+pip install numpy
+pip install mkl-service
 ```
 
 ## Overview of Contents
@@ -111,12 +116,7 @@ pip install -r requirements.txt
 
 5. CNN Layers and Feature Visualization (Lesson 8)
 6. Project 1: Facial Keypoint Detection
-7. Project 2: Github
-8. Extra modules
-	- 8.1 Review on Neural Networks
-	- 8.2 Applying Deep Learning Modelss
-	- 8.3 Github
-	- 8.4 Skin Cancer Detection
+7. Project 2: Github: Done, nothing special
 
 ## 1. Image Representation & Classification (Lesson 4)
 
@@ -153,7 +153,7 @@ Example: Detect human emotions (Affectiva)
 - Image formation: pin-hole camera model
 - Pixelmaps:
 	- width x height, X x Y, row & column
-	- pixel values: 0 (dark/black) - 255 (light/white) = `2**8` = `int8
+	- pixel values: 0 (dark/black) - 255 (light/white) = `2**8` = `int8`
 	- 3 channels
 
 ### **Notebook**: `1_1_Image_Representation` / `1. Images as Numerical Data.ipynb`
@@ -1572,3 +1572,155 @@ The length of the HOG descriptor is computed in the notebook manually, using for
 
 ## 5. CNN Layers and Feature Visualization (Lesson 8)
 
+At the beginning of this section, it is pointed to a tutorial on Pytorch.
+
+That tutorial is summarized in the DLND repositoy:
+
+[deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity) `/02_Pytorch_Guide/`
+
+The contents summrized in the current document refer to specific topics related to the CVND.
+
+
+
+## 6. Project 1: Facial Keypoint Detection
+
+```
+## Project 1: Facial Keypoint Detection
+
+Original repository
+	https://github.com/udacity/P1_Facial_Keypoints
+Repository cloned to
+	https://github.com/mxagar/P1_Facial_Keypoints.git
+
+
+Given an image, predict 68 facial keypoints
+Notebooks which will be graded: 2 & 3; file grade: model.py
+All files
+	Notebook 1 : Loading and Visualizing the Facial Keypoint Data
+	Notebook 2 : Defining and Training a Convolutional Neural Network (CNN) to Predict Facial Keypoints
+	Notebook 3 : Facial Keypoint Detection Using Haar Cascades and your Trained CNN
+	Notebook 4 : Fun Filters and Keypoint Uses
+
+Evaluation rubric
+	- All files submitted and all questions answered: NB 2, NB 3, model.py
+		LOOK at them in the link
+		https://review.udacity.com/#!/rubrics/1426/view
+	- Each file (NB 2, 3, model.py) has its criteria: look at them
+Extra tasks
+	- Some seem quite interesting: LOOK at them
+
+Submission
+	- Intsructions in 5th NB in Udacity workspace
+	- If we work locally, upload files
+	- Hit "Submit Project" button
+
+Udacity Workspace instructions
+	- keep < 2GB
+	- only home folder persists after sessions
+	- when submission home folder < 25MB
+	- check size with `du -h . | tail -1`
+	- do not waste GPU time; use GPU time for training
+	- if "Out of Memory" error, restart the kernel
+	- workspace connection stops after 30 mins of inactivity; if DL training performed, use workspace_utils.py
+		Example using context manager:
+			from workspace_utils import active_session
+			with active_session():
+    			# do long-running work here
+		Example using iterator wrapper:
+			from workspace_utils import keep_awake
+			for i in keep_awake(range(5)):
+			    # do iteration with lots of work here
+	- even with workspace_utils, set the Jupyter notebook to save after cell execution!
+
+
+## 1. Load and Visualize Data
+
+	Very interesting notebook, because 
+	
+	1) we see how to extract the 2D keypoints and show them on the image
+
+		key_pts_frame = pd.read_csv('data/training_frames_keypoints.csv')
+
+		n = 0
+		image_name = key_pts_frame.iloc[n, 0]
+		key_pts = key_pts_frame.iloc[n, 1:].as_matrix()
+		key_pts = key_pts.astype('float').reshape(-1, 2)
+
+		def show_keypoints(image, key_pts):
+		    """Show image with keypoints"""
+		    plt.imshow(image)
+		    plt.scatter(key_pts[:, 0], key_pts[:, 1], s=20, marker='.', c='m')
+
+	2) callable classes are created for loading and transforming data!
+
+		import torch
+		from torch.utils.data import Dataset, DataLoader
+		from torchvision import transforms, utils
+
+		class FacialKeypointsDataset(Dataset):
+			def __init__(...): ...
+			def __len__(...): ...
+			def __getitem__(...): ...
+				...
+				# sample is a dictionary of image + np array with 68 2D points
+				# image is transformed!
+				sample = {'image': image, 'keypoints': key_pts}
+				if self.transform:
+		            sample = self.transform(sample)
+
+		class Normalize(object):
+			def __call__(...): ...
+
+		class Rescale(object):
+			def __init__(...): ...
+			def __call__(...): ...
+
+		class RandomCrop(object):
+			def __init__(...): ...
+			def __call__(...): ...
+
+		class ToTensor(object):
+			def __call__(...): ...
+
+		data_transform = transforms.Compose([Rescale(250),
+	                                     RandomCrop(224),
+	                                     Normalize(),
+	                                     ToTensor()])
+
+		transformed_dataset = FacialKeypointsDataset(
+								csv_file='data/training_frames_keypoints.csv',
+		                        root_dir='data/training/',
+		                        transform=data_transform)
+
+		print('Number of images: ', len(transformed_dataset))
+
+		for i in range(5):
+		    sample = transformed_dataset[i]
+		    print(i, sample['image'].size(), sample['keypoints'].size())
+
+
+## 2. Define the Network Architecture
+
+Suggested paper for design ideas
+	
+	Facial Key Points Detection using Deep Convolutional Neural Network - NaimishNet, 2017
+		architecture, summarized:
+			4x (conv2d + activation + maxpool2d + dropout (0.1 - 0.6, increased in later steps))
+				activation: 
+					Exponential Linear Units (ELUs) = RELU but with exponential elbow
+					Linear Activation Functions = RELU without cutting negatives, just a line
+			3x (dense + dropout)
+			adam, RMSProp
+			learing rate: 0.001
+			momentum: 0.9
+			batch size: 128
+			7 million params
+		design decisions
+			5x, 4x produced overfitting
+			multiple architectures trained for 40 epochs
+				behavior observed and extrapolated from experience
+			different initialization schemes used, uniform best
+			different patience levels for early stopping tried, 10% of total epochs used
+			similar to LeNet, as it has been shown to work well for facial keypoint detection
+
+```

@@ -32,6 +32,11 @@ conda install pip
 # Go to the folder where the Udacity DL exercises are cloned, after forking the original repo
 cd ~/git_repositories/CVND_Exercises
 pip install -r requirements.txt
+# I had some issues with numpy and torch
+pip uninstall numpy
+pip uninstall mkl-service
+pip install numpy
+pip install mkl-service
 ```
 
 Mikel Sagardia, 2022.
