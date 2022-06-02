@@ -304,7 +304,7 @@ def ft_image(norm_image):
     return frequency_tx
 
 gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-norm_image = gray_image/255.0
+norm_image = gray_image/255.0 # norm_image = gray_image.astype("float32")/255
 fourier_image = ft_image(norm_image)
 
 plt.imshow(fourier_image)

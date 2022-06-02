@@ -1578,8 +1578,247 @@ That tutorial is summarized in the DLND repositoy:
 
 [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity) `/02_Pytorch_Guide/`
 
-The contents summrized in the current document refer to specific topics related to the CVND.
+The contents summrized in the current document refer to specific topics related to the CVND, which focus on convolutional neural networks (CNN).
 
+However, note that the Udacity Deep Learning Nanodegree shows a deeper context of Deep Learning.
+
+Some interesting links to blog posts by Cezanne Camacho:
+
+- [Introduction to neural networks](https://cezannec.github.io/Intro_Neural_Networks/)
+- [Convolutional neural networks](https://cezannec.github.io/Convolutional_Neural_Networks/)
+
+### Convolutional Layers
+
+N filters applied to the input image or feature maps; feature maps are also known as activation maps.    
+Output of N filters: N feature maps: that's like an image with N channels.  
+Each filter has 3 dimensions: height x width x depth:
+
+- Depth is the depth of the input image or feture map
+- In the case of color input images the depth is the RGB channel; thus the first filters have in reality 3 2D filters, one for each channel
+- However, all sub-filter convolutions are summed to produce one value per pixel!
+
+Thus, when a feature map has N1 channels and we pass it through a layer with N2 filters, the convulution needs to have N2 filters of depth N1: N1 x N2. The convolution of each filter with depth N1 will be one activation map, yielding a total of N2 activation maps.
+
+![Convolutional layer](./pics/conv_layer.png)
+
+The size of the output feature map is expected to be
+
+	size(input feature map) - size(filter kernel) + 1
+
+During training, the weights of the filter kernels are learned.  
+If convolutional layers concatenated, patterns within patterns are learned/detected.  
+In contrast to fully connected layers, conv layers are locally connected: features that have a meaning in a local 2D space are learned. In the case of fully connected layers, all nodes are connected to all nodes.
+
+
+### Defining Layers in Pytorch
+
+All Pytorch layers can be looked here: [torch.nn](https://pytorch.org/docs/stable/nn.html)
+
+Common layers in computer vision are:
+
+- Convolutional
+- Pooling: aggregation or summary functions: max value, average, etc.; relevant pixel values are taken by compressing the feature maps. The most typical layer in CNNs is by far the `MaxPool2d`.
+- Fully connected: all previous nodes (pixels) are connected to the successor nodes; usually, at the end there is mapping to the classes using a fully connected layer.
+
+Example architecture of VGG-16 (Karen Simonyan & Andrew Zisserman, 2014) with those typical layers:
+
+![VGG-16 Architecture](./pics/vgg-16.png)
+
+Example of a max-pooling layer:
+
+![Max Pooling](./pics/max_pooling.png)
+
+All layers are defined within the `__init__()` function of our `Network` class in Pytorch, and used in the `forward()` member of that class:
+
+```python
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Net(nn.Module):
+
+    def __init__(self, n_classes):
+        super(Net, self).__init__()
+
+        # 1 input image channel (grayscale)
+        # 32 output channels/feature maps
+        # 5x5 square convolution kernel
+        # output_size: input_size - 5 + 1
+        self.conv1 = nn.Conv2d(1, 32, 5)
+
+        # maxpool layer
+        # pool with kernel_size=2, stride=2
+        self.pool = nn.MaxPool2d(2, 2)
+
+        # fully-connected layer
+        # 32*4 input size to account for the downsampled image size after pooling
+        # num_classes outputs (for n_classes of image data)
+        self.fc1 = nn.Linear(32*4, n_classes)
+
+    # define the feedforward behavior
+    def forward(self, x):
+        # one conv/relu + pool layers
+        x = self.pool(F.relu(self.conv1(x)))
+
+        # prep for linear layer by flattening the feature maps into feature vectors
+        x = x.view(x.size(0), -1)
+        # linear layer 
+        x = F.relu(self.fc1(x))
+
+        # final output
+        return x
+
+# instantiate and print your Net
+n_classes = 20 # example number of classes
+net = Net(n_classes)
+print(net)
+
+```
+
+### **Notebook**: `1_5_CNN_Layers` / `1. Conv Layer Visualization.ipynb`
+
+Interesting notebook in which a simple convolutional network is defined in Pytorch. The following is done:
+
+- Filter values are defined outside and set to the convolution layer weights (X & Y Sobel kernels)
+- An image is passed (convuluted): the convoluton output (feature map) is returned with and without the ReLU activation
+- Returned maps are visualized
+
+The notebook can be practical if we want to visualize layers in the future!
+
+```python
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# Load color image 
+img_path = 'images/udacity_sdc.png'
+bgr_img = cv2.imread(img_path)
+# Convert to grayscale
+gray_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2GRAY)
+
+# Normalize, rescale entries to lie in [0,1]
+gray_img = gray_img.astype("float32")/255
+
+# Convert the image into an input Tensor
+gray_img_tensor = torch.from_numpy(gray_img).unsqueeze(0).unsqueeze(1)
+
+# Manual filter: 4 filters
+filter_vals = np.array([[-1, -1, 1, 1], [-1, -1, 1, 1], [-1, -1, 1, 1], [-1, -1, 1, 1]])
+filter_1 = filter_vals
+filter_2 = -filter_1
+filter_3 = filter_1.T
+filter_4 = -filter_3
+filters = np.array([filter_1, filter_2, filter_3, filter_4])
+    
+# Define a neural network with a single convolutional layer with four filters
+class Net(nn.Module):
+        def __init__(self, weight):
+        super(Net, self).__init__()
+        k_height, k_width = weight.shape[2:]
+        self.conv = nn.Conv2d(1, 4, kernel_size=(k_height, k_width), bias=False)
+        self.conv.weight = torch.nn.Parameter(weight)
+
+    def forward(self, x):
+        conv_x = self.conv(x)
+        activated_x = F.relu(conv_x)
+
+        return conv_x, activated_x
+
+# Instantiate model with manual filter weights
+weight = torch.from_numpy(filters).unsqueeze(1).type(torch.FloatTensor)
+model = Net(weight)
+
+# Get the convolutional layer (pre and post activation)
+# See model definition in 
+conv_layer, activated_layer = model(gray_img_tensor)
+
+# Helper function for visualizing the output of a given layer
+# default number of filters is 4
+def viz_layer(layer, n_filters= 4):
+    fig = plt.figure(figsize=(20, 20))
+    
+    for i in range(n_filters):
+        ax = fig.add_subplot(1, n_filters, i+1, xticks=[], yticks=[])
+        # grab layer outputs
+        ax.imshow(np.squeeze(layer[0,i].data.numpy()), cmap='gray')
+        ax.set_title('Output %s' % str(i+1))
+
+# Visualize the output of a conv layer
+viz_layer(conv_layer) # convoluted image
+viz_layer(activated_layer) # convoluted imaged after passing through activation
+```
+
+### Pooling layers
+
+Pooling layers usually come after convolutional layers and reduce the dimensionality, preventing overfitting.
+Convolutional layers have many channels or feature maps which increase parameters:
+
+- This might lead to overfitting
+- Therefore, reducing dimensionality is a way of reducing the risk of overfitting
+
+Usually, a max-pooling layer
+
+- has as input a convolutional layer of size W x H x D
+	- W x H: size of each feature map
+	- D: depth or number of feature maps (channels)
+- has an output of size w x h x D
+	- w x d: new feature maps with reduced size w x h < W x H
+	- D: same depth as before, the same amount of feature maps as before
+
+There are several types of pooling layers, 2 of the most important are:
+
+1. Max Pooling
+	- window size & stride defined, eg 2x2 & 2 (in pixels)
+	- for each window 2x2 max pixel value is chosen
+	- in this sparticular case, w = W/2, h = H/2
+2. Global Average Pooling
+	- for each feature map, average pixel value is chosen
+	- output: vector of length D: (1x1x)D
+
+[Pooling layers in Pytorch](https://pytorch.org/docs/stable/nn.html#pooling-layers)
+
+### Fully Connected Layers
+
+Pixel/node outputs from previous layers are linearly mapped to C nodes:
+
+- Say we have WxHxD nodes/pixels from previous classes
+- These are mapped to C nodes, which are usually the classes
+
+So, 3D tensors of feature maps with D channels are reduced to 1xC vectors
+
+Several fully connected layers can be concatenated at the end:
+
+- Intermmediate fully connected layers have ReLU
+- Last fully connected layer has usually `Softmax` or `LogSoftmax`, which generates class (log) probabilities.
+
+Dropout:
+
+- It de-activates nodes randomly, assigning each node an independent deactivation probability `p`.
+- It is implemented by adding a layer which zeroes the output of the previous layer.
+- It should be active only during tranining.
+- It prevents overfitting
+
+[Dropout layers in Pytorch](https://pytorch.org/docs/stable/nn.html#dropout-layers)
+
+### **Notebook**: `1_5_CNN_Layers` / `2. Pool Visualization.ipynb`
+
+Pooling layers come often after a convolution and they reduce the dimensionality of the feeature maps, thus, reducing the risk of overfitting.
+
+This notebook is very similar to the previous one; the new addition is that a max-pooling layer is added, so that the output after `Conv2d -> MaxPool2d` is visualized: similar to before, but the images are compressed.
+
+### **Notebook**: `1_5_CNN_Layers` / `3. Load and Visualize FashionMNIST.ipynb`
+
+
+
+### **Notebook**: `1_5_CNN_Layers` / `4_1. Classify FashionMNIST, exercise.ipynb`
+### **Notebook**: `1_5_CNN_Layers` / `4_2. Classify FashionMNIST, solution 1.ipynb`
+### **Notebook**: `1_5_CNN_Layers` / `4_3. Classify FashionMNIST, solution 2.ipynb`
+### **Notebook**: `1_5_CNN_Layers` / `5_1. Feature viz for FashionMNIST`
+### **Notebook**: `1_5_CNN_Layers` / `5_2. Visualize Your Net.ipynb`
 
 
 ## 6. Project 1: Facial Keypoint Detection
