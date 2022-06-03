@@ -1582,10 +1582,13 @@ The contents summrized in the current document refer to specific topics related 
 
 However, note that the Udacity Deep Learning Nanodegree shows a deeper context of Deep Learning.
 
-Some interesting links to blog posts by Cezanne Camacho:
+In the present lesson/section, first, some CNN layer notes and visualizations are dealed; then, the lesson focuses on applying CNNs to the [Fashion-MNIST dataset](https://github.com/zalandoresearch/fashion-mnist).
+
+Finally, some related links to blog posts by Cezanne Camacho:
 
 - [Introduction to neural networks](https://cezannec.github.io/Intro_Neural_Networks/)
 - [Convolutional neural networks](https://cezannec.github.io/Convolutional_Neural_Networks/)
+
 
 ### Convolutional Layers
 
@@ -1603,7 +1606,7 @@ Thus, when a feature map has N1 channels and we pass it through a layer with N2 
 
 The size of the output feature map is expected to be
 
-	size(input feature map) - size(filter kernel) + 1
+	(size(input feature map) - size(filter kernel))/stride + 1
 
 During training, the weights of the filter kernels are learned.  
 If convolutional layers concatenated, patterns within patterns are learned/detected.  
@@ -1788,10 +1791,11 @@ Pixel/node outputs from previous layers are linearly mapped to C nodes:
 - Say we have WxHxD nodes/pixels from previous classes
 - These are mapped to C nodes, which are usually the classes
 
-So, 3D tensors of feature maps with D channels are reduced to 1xC vectors
+So, 3D tensors of feature maps with D channels are reduced to 1xC vectors.
 
 Several fully connected layers can be concatenated at the end:
 
+- If the input is comming from convolutional layers, it must be flattened: `x = x.view(x.size(0), -1)
 - Intermmediate fully connected layers have ReLU
 - Last fully connected layer has usually `Softmax` or `LogSoftmax`, which generates class (log) probabilities.
 
@@ -1812,13 +1816,615 @@ This notebook is very similar to the previous one; the new addition is that a ma
 
 ### **Notebook**: `1_5_CNN_Layers` / `3. Load and Visualize FashionMNIST.ipynb`
 
+Visualization of the [Fashion-MNIST dataset](https://github.com/zalandoresearch/fashion-mnist):  
+The dataset is loaded and batches are extracted in `Tensor` format with the `DataLoader`.  
+Additionally, a big picture of the images is constructed, with annotated pixel values.
+
+```python
+import torch
+import torchvision
+
+from torchvision.datasets import FashionMNIST
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
+# The output of torchvision datasets are PILImage images of range [0, 1]. 
+# We transform them to Tensors for input into a CNN
+# Define a transform to read the data in as a tensor: mapped to [0, 1]
+data_transform = transforms.ToTensor()
+train_data = FashionMNIST(root='./data', train=True,
+                                   download=True, transform=data_transform)
+print('Train data, number of images: ', len(train_data))
+
+batch_size = 20
+train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+
+# Image classes
+classes = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 
+           'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+    
+# Obtain one batch of training images
+dataiter = iter(train_loader)
+images, labels = dataiter.next()
+images = images.numpy()
+
+# Plot the images in the batch, along with the corresponding labels
+fig = plt.figure(figsize=(25, 4))
+for idx in np.arange(batch_size):
+    ax = fig.add_subplot(2, batch_size/2, idx+1, xticks=[], yticks=[])
+    ax.imshow(np.squeeze(images[idx]), cmap='gray')
+    ax.set_title(classes[labels[idx]])
+
+```
+
+### Training
+
+In addition to the dataset and the network definition, for training we need a loss function and an optimizer:
+
+- [Loss functions](https://pytorch.org/docs/master/nn.html#loss-functions)
+- [Optimizers](https://pytorch.org/docs/master/optim.html)
+
+The **loss function** is the definition of how we compute the error of an inference:
 
 
-### **Notebook**: `1_5_CNN_Layers` / `4_1. Classify FashionMNIST, exercise.ipynb`
-### **Notebook**: `1_5_CNN_Layers` / `4_2. Classify FashionMNIST, solution 1.ipynb`
-### **Notebook**: `1_5_CNN_Layers` / `4_3. Classify FashionMNIST, solution 2.ipynb`
+	loss = torch.nn.MSELoss(...) # regression
+	loss = torch.nn.CrossEntropyLoss(...) # classification with raw output, ie., no activation
+	loss = torch.nn.NLLLoss(...) # classification with LogSoftmax activated output
+	...
+
+The **optimizer** is the definition of how the weights are updated given the loss gradient (e.g., simple gradient descend):
+
+	criterion = torch.optim.Adam(...)
+	criterion = torch.optim.SGD(...)
+
+The basic training loop is the following:
+
+0. prepare batch images to feed to network
+1. forward pass
+2. compute loss
+3. backward pass (compute gradients)
+4. optimize/update weights
+
+### **Notebook**: `1_5_CNN_Layers` / `4_1. Classify FashionMNIST, exercise.ipynb`, `4_2. Classify FashionMNIST, solution 1.ipynb`, `4_3. Classify FashionMNIST, solution 2.ipynb`
+
+This is a **very important and complete example** in which a convolutional network is defined and trained with the Fashion-MNIST dataset.
+
+Performed steps:
+
+	load dataset
+		train & test split
+	visualize samples
+	create CNN
+		conv2d
+		maxpool2d
+		linear
+		dropout
+	feedforward some samples
+		cross-entropy loss / log_softmax + NLLLoss
+		adam
+	train model (on selected device)
+		validation with test split
+	test model
+		overall & class accuracy
+	visualize forwardpass results
+	save model
+	load model
+
+Interesting links:
+
+- [A guide to convolution arithmetic](https://arxiv.org/pdf/1603.07285.pdf)
+- [Convolution arithmetic](https://github.com/vdumoulin/conv_arithmetic)
+
+Altogether, three network architectures are tested:
+
+```
+# Solution 1
+
+Net(
+  (conv1): Conv2d(1, 10, kernel_size=(3, 3), stride=(1, 1))
+  (pool): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+  (conv2): Conv2d(10, 20, kernel_size=(3, 3), stride=(1, 1))
+  (fc1): Linear(in_features=500, out_features=10, bias=True)
+)
+
+# Solution 2
+
+Net(
+  (conv1): Conv2d(1, 10, kernel_size=(3, 3), stride=(1, 1))
+  (pool): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+  (conv2): Conv2d(10, 20, kernel_size=(3, 3), stride=(1, 1))
+  (fc1): Linear(in_features=500, out_features=50, bias=True)
+  (fc1_drop): Dropout(p=0.4, inplace=False)
+  (fc2): Linear(in_features=50, out_features=10, bias=True)
+)
+
+# My own defined network
+
+Net(
+  (conv1): Conv2d(1, 10, kernel_size=(3, 3), stride=(1, 1))
+  (conv2): Conv2d(10, 20, kernel_size=(3, 3), stride=(1, 1))
+  (pool1): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+  (dropout1): Dropout(p=0.5, inplace=False)
+  (conv3): Conv2d(20, 30, kernel_size=(3, 3), stride=(1, 1))
+  (conv4): Conv2d(30, 40, kernel_size=(3, 3), stride=(1, 1))
+  (pool2): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+  (dropout2): Dropout(p=0.5, inplace=False)
+  (linear1): Linear(in_features=640, out_features=100, bias=True)
+  (linear2): Linear(in_features=100, out_features=10, bias=True)
+)
+
+```
+
+In the following, the most important parts of the notebook are summarized:
+
+1. Load and visualize the dataset
+2. Define the network
+3. Training and validation
+4. Evaluate the network
+5. Inference
+6. Saving and loading the weights
+
+```python
+
+### -- 1. Load and visualize the dataset
+
+import torch
+import torchvision
+
+from torchvision.datasets import FashionMNIST
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
+# The output of torchvision datasets are PILImage images of range [0, 1]. 
+# We transform them to Tensors for input into a CNN
+# Define a transform to read the data in as a tensor: pixel values mapped to [0,1]
+data_transform = transforms.ToTensor()
+
+# Choose the training and test datasets
+train_data = FashionMNIST(root='./data', train=True,
+                                   download=True, transform=data_transform)
+
+test_data = FashionMNIST(root='./data', train=False,
+                                  download=True, transform=data_transform)
+
+
+# Print out some stats about the training and test data
+print('Train data, number of images: ', len(train_data)) # 60,000
+print('Test data, number of images: ', len(test_data)) # 10,000
+
+# Prepare data loaders, set the batch_size
+batch_size = 20
+train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
+
+# Specify the image classes
+classes = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 
+           'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+# Visualize some images
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+    
+# Obtain one batch of training images
+dataiter = iter(train_loader)
+images, labels = dataiter.next()
+images = images.numpy()
+
+# Plot the images in the batch, along with the corresponding labels
+fig = plt.figure(figsize=(25, 4))
+for idx in np.arange(batch_size):
+    ax = fig.add_subplot(2, batch_size/2, idx+1, xticks=[], yticks=[])
+    ax.imshow(np.squeeze(images[idx]), cmap='gray')
+    ax.set_title(classes[labels[idx]])
+
+images[0].shape # (1, 28, 28)
+
+### -- 2. Define the network
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Net(nn.Module):
+
+    def __init__(self, drop_p=0.5):
+        super(Net, self).__init__()
+        
+        # 1 input image channel (grayscale)
+        # 10 output channels/feature maps
+        # 3x3 square convolution kernel
+        # input size batch_size x 1 x 28 x 28,
+        # output size batch_size x 10 x 26 x 26 (look formula in docu)
+        # (W-F)/S + 1 = (28-3)/1 + 1 = 26
+        self.conv1 = nn.Conv2d(1, 10, 3)
+        
+        # input size batch_size x 10 x 26 x 26
+        # output size batch_size x 20 x 24 x 24 (look formula in docu)
+        # (W-F)/S + 1 = (26-3)/1 + 1 = 24
+        self.conv2 = nn.Conv2d(10, 20, 3)
+        # input size batch_size x 20 x 24 x 24,
+        # output size batch_size x 20 x 12 x 12 (look formula in docu)
+        # kernel_size=2, stride=2 -> W = W/2 = 24/2 = 12
+        self.pool1 = nn.MaxPool2d(2,2)
+        self.dropout1 = nn.Dropout(p=drop_p)
+
+        # input size batch_size x 20 x 12 x 12
+        # output size batch_size x 30 x 10 x 10 (look formula in docu)
+        self.conv3 = nn.Conv2d(20, 30, 3)
+        # input size batch_size x 30 x 10 x 10
+        # output size batch_size x 40 x 8 x 8 (look formula in docu)
+        self.conv4 = nn.Conv2d(30, 40, 3)
+        # input size batch_size x 40 x 8 x 8,
+        # output size batch_size x 40 x 4 x 4 (look formula in docu)
+        self.pool2 = nn.MaxPool2d(2,2)
+        self.dropout2 = nn.Dropout(p=drop_p)
+        
+        # input features: batch_size x 40 x 4 x 4; 40 x 4 x 4 = 640
+        self.linear1 = nn.Linear(640,100)
+        self.linear2 = nn.Linear(100,10)
+        
+    # Feedforward pass
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.pool1(x))
+        x = self.dropout1(x)
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        x = F.relu(self.pool2(x))
+        x = self.dropout2(x)
+        # flatten: batch_size x 40 x 4 x 4 -> (batch_size, 640)
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.linear1(x))
+        #x = F.softmax(self.linear2(x),dim=1)        
+        x = F.log_softmax(self.linear2(x),dim=1)        
+        # final output
+        return x
+
+# instantiate and print your Net
+net = Net()
+print(net)
+
+### -- 3. Training and validation
+
+import torch.optim as optim
+
+# Specify loss function
+#criterion = nn.CrossEntropyLoss()
+criterion = nn.NLLLoss()
+
+## Specify optimizer 
+#optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+# Validation function: try it before training
+def validate(net, criterion, test_loader):
+    # Select device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Transfer model/network to device
+    net.to(device)
+    # Calculate accuracy before training
+    running_correct = 0
+    total = 0
+    running_loss = 0
+    # Set net in evaluation mode (no dropout)
+    net.eval()
+    # Iterate through test dataset
+    for images, labels in test_loader:
+        # forward pass to get outputs
+        # the outputs are a series of class scores
+        images, labels = images.to(device), labels.to(device)
+        outputs = net(images)
+        # calculate the loss
+        loss = criterion(outputs, labels)
+        running_loss += loss.item()
+        # get the predicted class from the maximum value in the output-list of class scores
+        _, predicted = torch.max(outputs.data, dim=1)
+        # count up total number of correct labels
+        # for which the predicted and true labels are equal
+        total += labels.size(0)
+        running_correct += ((predicted == labels).sum()).item()
+    # calculate the accuracy
+    average_accuracy = running_correct / total
+    average_loss = running_loss / total
+    return average_accuracy, average_loss
+
+# Compute accuracy
+accuracy, loss = validate(net, criterion, test_loader)
+# Print it out
+print(f'Accuracy and loss before training: {accuracy}, {loss}')
+# Accuracy and loss before training: 0.0657, 0.11523878312110901
+
+def train(net, n_epochs, train_loader, test_loader, validation=True):
+    # Print/validation frequency
+    validation_freq = 1000
+    # select device: CPU / CUDA
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Training on {}".format(device))
+    # transfer model/network to device
+    net.to(device)
+    # set model in traning mode (dropout active)
+    net.train()
+    train_loss_over_time = [] # to track the loss as the network trains
+    test_loss_over_time = [] # to track the loss as the network trains
+    test_accuracy_over_time = []
+    for epoch in range(n_epochs):  # loop over the dataset multiple times
+        running_loss = 0.0
+        for batch_i, data in enumerate(train_loader):
+            # get the input images and their corresponding labels
+            inputs, labels = data
+            # transfer data to device
+            inputs, labels = inputs.to(device), labels.to(device)
+            # zero the parameter (weight) gradients
+            optimizer.zero_grad()
+            # forward pass to get outputs
+            outputs = net(inputs)
+            # calculate the loss
+            loss = criterion(outputs, labels)
+            # backward pass to calculate the parameter gradients
+            loss.backward()
+            # update the parameters
+            optimizer.step()
+            # print loss statistics
+            # to convert loss into a scalar and add it to running_loss, we use .item()
+            running_loss += loss.item()
+            if batch_i % validation_freq == 999:    # print every 1000 mini-batches
+                if validation:
+                    test_accuracy, test_loss = validate(net, criterion, test_loader)
+                    test_accuracy_over_time.append(test_accuracy)
+                avg_loss = running_loss/validation_freq
+                train_loss_over_time.append(avg_loss)
+                test_loss_over_time.append(test_loss)
+                print('Epoch: {}, Batch: {}, Avg. Train Loss: {}, Avg. Test Loss: {}, Test Accuracy: {}'.format(epoch + 1, batch_i+1, avg_loss, test_loss, test_accuracy))
+                running_loss = 0.0
+    print('Finished Training')
+    return train_loss_over_time, test_loss_over_time, test_accuracy_over_time
+
+    # define the number of epochs to train for
+
+# Train
+n_epochs = 5 # start small to see if your model works, initially
+
+import time
+t1 = time.time()
+train_loss_over_time, test_loss_over_time, test_accuracy_over_time = train(net, n_epochs, train_loader, test_loader)
+t2 = time.time()
+print("Time for training: {} seconds".format(t2-t1))
+
+# ...
+# Epoch: 5, Batch: 3000,
+# Avg. Train Loss: 0.10901981005590641, Avg. Test Loss: 0.0163709447588888, Test Accuracy: 0.9122
+# Finished Training
+# Time for training: 319.07084107398987 seconds
+
+# Visualize the loss as the network trained
+# It seems that the network is overfitting,
+# because the test loss starts increasing while the train loss decreases
+# Early stopping could be an option, or regularization & dropout
+train_loss_over_time = np.array(train_loss_over_time)
+train_loss_over_time /= train_loss_over_time.max()
+test_loss_over_time = np.array(test_loss_over_time)
+test_loss_over_time /= test_loss_over_time.max()
+test_accuracy_over_time = np.array(test_accuracy_over_time)
+plt.plot(train_loss_over_time, label='Train loss')
+plt.plot(test_loss_over_time, label='Test loss')
+plt.plot(test_accuracy_over_time, label='Test accuracy')
+plt.legend()
+plt.xlabel('1000\'s of batches')
+plt.ylabel('loss')
+plt.ylim(0, 1.25) # consistent scale
+plt.show()
+
+### -- 4. Evaluate the network
+
+# initialize tensor and lists to monitor test loss and accuracy
+test_loss = torch.zeros(1)
+class_correct = list(0. for i in range(10))
+class_total = list(0. for i in range(10))
+
+# select device: CPU / CUDA
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Testing on {}".format(device))
+# transfer model/network to device
+net.to(device)
+
+# set the module to evaluation mode (deactivate dropout)
+net.eval()
+
+for batch_i, data in enumerate(test_loader):
+    
+    # get the input images and their corresponding labels
+    inputs, labels = data
+    
+    # transfer data to device
+    inputs, labels = inputs.to(device), labels.to(device)
+
+    # forward pass to get outputs
+    outputs = net(inputs)
+
+    # calculate the loss
+    loss = criterion(outputs, labels)
+            
+    # update average test loss 
+    test_loss = test_loss + ((torch.ones(1) / (batch_i + 1)) * (loss.data - test_loss))
+    
+    # get the predicted class from the maximum value in the output-list of class scores
+    _, predicted = torch.max(outputs.data, 1)
+    
+    # compare predictions to true label
+    correct = predicted == labels
+    
+    # calculate test accuracy for *each* object class
+    # we get the scalar value of correct items for a class, by calling `correct[i].item()`
+    for i in range(batch_size):
+        label = labels.data[i]
+        class_correct[label] += correct[i].item()
+        class_total[label] += 1
+
+print('Test Loss: {:.6f}\n'.format(test_loss.numpy()[0]))
+
+for i in range(10):
+    if class_total[i] > 0:
+        print('Test Accuracy of %5s: %2d%% (%2d/%2d)' % (
+            classes[i], 100 * class_correct[i] / class_total[i],
+            np.sum(class_correct[i]), np.sum(class_total[i])))
+    else:
+        print('Test Accuracy of %5s: N/A (no training examples)' % (classes[i]))
+
+        
+print('\nTest Accuracy (Overall): %2d%% (%2d/%2d)' % (
+    100. * np.sum(class_correct) / np.sum(class_total),
+    np.sum(class_correct), np.sum(class_total)))
+
+# Testing on cpu
+# Test Loss: 0.327419
+
+# Test Accuracy of T-shirt/top: 89% (899/1000)
+# Test Accuracy of Trouser: 98% (982/1000)
+# Test Accuracy of Pullover: 89% (898/1000)
+# Test Accuracy of Dress: 91% (917/1000)
+# Test Accuracy of  Coat: 85% (857/1000)
+# Test Accuracy of Sandal: 98% (985/1000)
+# Test Accuracy of Shirt: 68% (682/1000)
+# Test Accuracy of Sneaker: 98% (986/1000)
+# Test Accuracy of   Bag: 97% (974/1000)
+# Test Accuracy of Ankle boot: 94% (942/1000)
+
+# Test Accuracy (Overall): 91% (9122/10000)
+
+### -- 5. Inference
+
+# obtain one batch of test images
+dataiter = iter(test_loader)
+images, labels = dataiter.next()
+# since images and labels are casted to numpy, we need to have the network in CPU
+device = "cpu"
+net.to(device)
+
+# get predictions
+preds = np.squeeze(net(images).data.max(1, keepdim=True)[1].numpy())
+images = images.numpy()
+labels = labels.numpy()  
+
+# plot the images in the batch, along with predicted and true labels
+fig = plt.figure(figsize=(25, 4))
+for idx in np.arange(batch_size):
+    ax = fig.add_subplot(2, batch_size/2, idx+1, xticks=[], yticks=[])
+    ax.imshow(np.squeeze(images[idx]), cmap='gray')
+    c = 'red'
+    if preds[idx]==labels[idx]:
+        c = 'green'
+    ax.set_title("{} ({})".format(classes[preds[idx]], classes[labels[idx]]), color=c)
+
+### -- 6. Saving and loading the weights
+
+# Watch out: here we save the weights only
+# We need to either
+# (1) parametrize the model and save its params in a dictionary
+# (2) or save the model definition in a file and instantiate it before loading the weights
+model_dir = 'saved_models/'
+model_name = 'model_1.pt'
+torch.save(net.state_dict(), model_dir+model_name)
+
+# Instantiate your Net
+net = Net()
+
+# Load the net parameters by name
+net.load_state_dict(torch.load('saved_models/model_1.pt'))
+print(net)
+
+```
+
+### Network structure: How to decide leayers, etc?
+
+To prevent OVERFITTING
+
+1. Early stopping
+2. Regularization
+	- L2 regularization implemented as `weight_decay` (alpha) in torch.optim functions
+3. Dropout
+	- use at the end of the network, eg., betwen fully connected layers
+4. Batch normalization
+	- use at the beginning of the network
+	- just as with dropout, a layer is added
+		- `nn.BatchNorm1d` after linear
+		- `nn.Batchnorm2d` after conv2
+	- for each batch, output's mean substracted and std divided
+	- effect: the values of hidden layer don't shift that much, network more stable
+	
+Which layers should we use?
+
+- More layers = we see more complex structures; BUT: for simple structures, few layers are enough!
+- Look for inspiration in known netwrks, since people already tried many things!
+
+Always try changes and see what happens
+
+- vary number of layers
+- vary size or kernels
+- try different loss/optimization functions
+- tune hyperparamters: learning rate, momentum
+- change batch size
+
+### Feature Visualization
+
+In some cases the network learns false cues. Example: wolf in snow -> snow learned; network fails to ditinguish between dog and wolf in snow.
+
+Therefore, it's good being able to visualize the learned filters & the feature maps we obtain.
+
+Layers learn the following:
+
+- First layer: usually highpass filters for lines learned
+- Successive layers: from lines to corners, object parts, more complex shapes, objects, animals, humans
+	- Important note: the input they receive are not images, but feature maps!
+- Last layers (fully connected): long vector that enconde object
+
+It is important to distinguish that we can visualize two different things:
+
+- Filter weight visualization
+- Feature/activation map visualization
+
+Interesting references:
+
+- [Matt Zeiler, Visualizing DL models - deconvolution](https://www.youtube.com/watch?v=ghEmQSxT6tw)
+- [Visualization of activation maps](https://experiments.withgoogle.com/what-neural-nets-see)
+
+Some layer visualizations, by [Matt Zeiler](https://www.clarifai.com/):
+
+![Layer 1](./pics/layer_1.png)
+
+![Layer 2](./pics/layer_2.png)
+
+![Layer 3](./pics/layer_3.png)
+
+![Layer 5](./pics/layer_5.png)
+
+
 ### **Notebook**: `1_5_CNN_Layers` / `5_1. Feature viz for FashionMNIST`
 ### **Notebook**: `1_5_CNN_Layers` / `5_2. Visualize Your Net.ipynb`
+
+
+### Last Feature Vector, Dimensionality Reduction
+
+
+
+### Occlusion, Saliency, Guided Backpropagation
+
+
+
+### Some Applications with Feature Maps
+
+
+
+### Popular Networks (my notes, not in Udacity)
+
+
+
+### Summary Examples (my notebooks, not in Udacity)
+
 
 
 ## 6. Project 1: Facial Keypoint Detection
