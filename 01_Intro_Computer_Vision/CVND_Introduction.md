@@ -2384,48 +2384,219 @@ Layers learn the following:
 
 It is important to distinguish that we can visualize two different things:
 
-- Filter weight visualization
-- Feature/activation map visualization
+- Filter weight visualization: we visualize the filters, which are related to the particular features they detect
+- Feature/activation map visualization: these are much more interesting than the filters; we should not get noisy blobby activation maps, but specific local areas should be clearly highlighted depending on the class.
 
 Interesting references:
 
 - [Matt Zeiler, Visualizing DL models - deconvolution](https://www.youtube.com/watch?v=ghEmQSxT6tw)
 - [Visualization of activation maps](https://experiments.withgoogle.com/what-neural-nets-see)
+- [What Neural Networks See](https://experiments.withgoogle.com/what-neural-nets-see)
 
 Some layer visualizations, by [Matt Zeiler](https://www.clarifai.com/):
 
-![Layer 1](./pics/layer_1.png)
+![Layer 1, Zeiler](./pics/layer_1.png)
 
-![Layer 2](./pics/layer_2.png)
+![Layer 2, Zeiler](./pics/layer_2.png)
 
-![Layer 3](./pics/layer_3.png)
+![Layer 3, Zeiler](./pics/layer_3.png)
 
-![Layer 5](./pics/layer_5.png)
+![Layer 5, Zeiler](./pics/layer_5.png)
 
 
 ### **Notebook**: `1_5_CNN_Layers` / `5_1. Feature viz for FashionMNIST`
-### **Notebook**: `1_5_CNN_Layers` / `5_2. Visualize Your Net.ipynb`
 
+In this notebook a pre-trained simple network is loaded and its first convolutional filter as well as the first activation map are visualized.
+
+```python
+
+### -- 1. Filter visualization
+
+# Get the weights in the conv layer
+weights = net.conv1.weight.data
+#weights = net.conv2.weight.data
+w = weights.numpy()
+fig = plt.figure(figsize=(20, 8))
+columns = 5
+rows = 2
+for i in range(0, columns*rows):
+    fig.add_subplot(rows, columns, i+1)
+    plt.imshow(w[i][0], cmap='gray')
+plt.show()
+
+### -- 2. Activation map visualization
+
+# Obtain one batch of testing images
+dataiter = iter(test_loader)
+images, labels = dataiter.next()
+images = images.numpy()
+
+# Select an image by index
+idx = 10
+img = np.squeeze(images[idx])
+
+# Use OpenCV's filter2D function 
+# apply a specific set of filter weights to the test image
+# (like the one's displayed above) 
+
+import cv2
+plt.imshow(img, cmap='gray')
+
+weights = net.conv1.weight.data
+w = weights.numpy()
+
+# First conv layer
+# for 10 filters
+fig=plt.figure(figsize=(30, 10))
+columns = 5*2
+rows = 2
+for i in range(0, columns*rows):
+    fig.add_subplot(rows, columns, i+1)
+    if ((i%2)==0):
+        plt.imshow(w[int(i/2)][0], cmap='gray')
+    else:
+        c = cv2.filter2D(img, -1, w[int((i-1)/2)][0])
+        plt.imshow(c, cmap='gray')
+plt.show()
+
+```
 
 ### Last Feature Vector, Dimensionality Reduction
 
+The last feature vector before the class scores is a compressed representation of the image content. Images with similar contents should have similar vectors.
 
+Thus, we can look for similar images we applying nearest neighbors of the image feature vectors in that feature space!
+
+Additionally, if we apply dimensionality reduction techniques like Principal Components Analysis (PCA) or t-SNE we can reduce the high dimensional feature vectors to 2D/3D spaces and visualize them for a better understanding of our dataset.
+
+See handwritten notes.
+
+![Example of t-SNE applied to the MNIST dataset](./pics/t-sne-mnist.png)
 
 ### Occlusion, Saliency, Guided Backpropagation
 
+With **occlusion** experiments, an occlusion mask is swept through the `(x,y)` coordinates of an image and the probability of the correct class is stored for that point. When a relevant part is occluded, the probability decreases considerably; as a result a heatmap of the relevant regions of an image in relation to its class are detected. 
 
+![Occlusion heatmaps](./pics/occlusion_heatmaps.png)
+
+**Saliency maps** evaluate how relevant a pixel is for a given class. Basically, the gradient of the class with respect to changes in the pixels is measured. Thus, we get maps that are similar to the heatmaps. The saliency maps have been used to perform image segmentation.
+
+With **guided backpropagation** the gradient of the activated outputs of a neurons with respect to the changes of pixels are measured. As such, we get how relevant pixels are for specific neurons.
 
 ### Some Applications with Feature Maps
 
-
+- Deep Dream: select features are amplified in an image; basically, we select the layer with features we'd like to highlight and set its activated output to be the gradient. The resulting effect is that the activated features are amplified.
+- Style transfer: content (latest layers) and style are captured from 2 images and they are combined. The staly is related to the texture: this can be detected by computing correlations between different feature maps of different layers.
 
 ### Popular Networks (my notes, not in Udacity)
 
+See handwritten notes.
 
+#### LeNet (1989-1998)
+
+[LeNet](https://en.wikipedia.org/wiki/LeNet) is the first CNN architecture, published by Yann LeCun in 1989.
+
+There are several versions, the 5th is usually mentioned (1998).
+
+![LeNet and AlexNet architectures](./pics/lenet_alexnet.png)
+
+#### AlexNet (2012)
+
+[ImageNet Classification with Deep Convolutional Neural Networks](https://papers.nips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html)  
+Alex Krizhevsky, Ilya Sutskever, Geoffrey Hinton (2012).  
+
+They competed in the [ImageNet challenge](https://en.wikipedia.org/wiki/ImageNet) and achieved a remarkable result for the first time; that's when the deep learning hype started, or at least people started to pay attenton to deep learning.
+
+![LeNet and AlexNet architectures](./pics/lenet_alexnet.png)
+
+Some features:
+
+- 2 GPUs used, faster
+- 1000 classes 
+- ReLU used
+- 8 layers and 3 max-pooling: 5 convolutional, 3 dense
+- 60M parameters, 650k neurons
+- Data augmentation used to prevent overfitting
+- Dropout (p=0.5) in the first two dense layers
+- Momentum = 0.9, weight decay = 0.0005
+
+#### VGG-16 (2014)
+
+[Very Deep Convolutional Networks for Large-Scale Image Recognition](https://arxiv.org/abs/1409.1556)  
+Simonyan, Zisserman (2014).  
+Visual Geometry Group, Oxford.
+
+Some features:
+
+- Smaller filters used (3x3): less paramaters, faster.
+- More layers than AlexNet; the optimum amount is 16.
+
+![VGG-16](./pics/vgg-16.png)
+
+#### ResNet (2015)
+
+[Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)  
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
+
+Look at this Medium article: [Review: ResNet, by Sik-Ho Tsang](https://towardsdatascience.com/review-resnet-winner-of-ilsvrc-2015-image-classification-localization-detection-e39402bfa5d8)
+
+Deep learning neural networks have the **vanishing/exploding gradient problem**: since the error is backpropagated with chain multiplications, large or small values are magnified, thus, loosing information. This problem is more accute when the number of layers increases.
+
+ResNets, in contrast, can have many layers but they avoid the vanishing/exploding gradient problem. They achieve that with skip/shortcut connections: inputs from previous layers are taken without any modifications.
+
+ResNets applied of these important features:
+
+1. **Skip/shortcut connections**: even with vanishing/exploding gradients the information is not lost, because the inputs from previous layers are preserved. However, the weights are optimized with the residual mapping (removing the previous input).
+
+2. **Bottleneck design with 1x1 convolutions**: 1x1 convolutions preserve the WxH size of the feature map but can reduce its depth. Therefore, they can reduce complexity. With them, it is possible to addd more layers!
+
+The result is that:
+
+- Deeper netorks with less parameters: faster to train and use
+- Increased accuracy
+
+As we increase the layers, the accuracy increases, but the speed decreases; **ResNet-50 is a good trade-off**.
+
+#### Inception v3 (2015)
+
+[Rethinking the Inception Architecture for Computer Vision](https://arxiv.org/abs/1512.00567)  
+Christian Szegedy, Vincent Vanhoucke, Sergey Ioffe, Jonathon Shlens, Zbigniew Wojna (2015)
+
+Look at this Medium article: [Review: Inception-v3, by Sik-Ho Tsang](https://sh-tsang.medium.com/review-inception-v3-1st-runner-up-image-classification-in-ilsvrc-2015-17915421f77c)
+
+They achieved a deep network (42 layers) with much less parameters.
+
+The key concepts that made that possible are:
+
+1. Batch normalization: the output of each batch is normalized (-mean, /std) to avoiddd the shifting of weights.
+
+2. **Factorization**: they introduced this approach. Larger filters (eg., 5x5) are replaced by smaller ones (eg., 3x3) that work in parallel; then, result is concatenated. This reduces the number of parameters without decreasing the network efficiency.
+
+#### DenseNet (2018)
+
+[Densely Connected Convolutional Networks](https://arxiv.org/abs/1608.06993).  
+Gao Huang, Zhuang Liu, Laurens van der Maaten, Kilian Q. Weinberger (2016/8)  
+
+[Review: DenseNet, by Mukul Khanna](https://medium.com/towards-data-science/paper-review-densenet-densely-connected-convolutional-networks-acf9065dfefb)
+
+
+The network targets the vanishing/exploding gradiengt problem, too.
+
+The architecture is composed of dense blocks of layers. Each layer from a dense block receives feature maps from all preceding layers and these are fused through concatenation, not summation (in constrast to ResNets).
+
+In consequence, the vanishing gradient is alleviated, while having deep networks with reduced number of parameters.
+
+DenseNets have much less parameters than ResNets but achieve the same accuracy. See comparison diagram in the paper.
+
+Reference DenseNet: DenseNet-121.
 
 ### Summary Examples (my notebooks, not in Udacity)
 
+My notes of the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101) have a folder/section in which the summary examples for Deep Learning using Pytorch are collected:
 
+[deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity) `/02_Pytorch_Guide/lab`.
+
+Look at the `README.md` there.
 
 ## 6. Project 1: Facial Keypoint Detection
 
