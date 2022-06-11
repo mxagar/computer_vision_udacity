@@ -115,7 +115,41 @@ pip install mkl-service
 	- **Notebook**: `1_4_Feature_Vectors` / `3_1. HOG.ipynb`
 
 5. CNN Layers and Feature Visualization (Lesson 8)
+
+	- Convolutional Layers
+	- Defining Layers in Pytorch
+	- **Notebook**: `1_5_CNN_Layers` / `1. Conv Layer Visualization.ipynb`
+	- Pooling layers
+	- Fully Connected Layers
+	- **Notebook**: `1_5_CNN_Layers` / `2. Pool Visualization.ipynb`
+	- **Notebook**: `1_5_CNN_Layers` / `3. Load and Visualize FashionMNIST.ipynb`
+	- Training
+	- **Notebook**: `1_5_CNN_Layers` / `4_1. Classify FashionMNIST, exercise.ipynb`, `4_2. Classify FashionMNIST, solution 1.ipynb`, `4_3. Classify FashionMNIST, solution 2.ipynb`
+		1. Load and visualize the dataset
+		2. Define the network
+		3. Training and validation
+		4. Evaluate the network
+		5. Inference
+		6. Saving and loading the weights
+	- Network structure: How to decide leayers, etc?
+	- Feature Visualization
+	- **Notebook**: `1_5_CNN_Layers` / `5_1. Feature viz for FashionMNIST`
+	- Last Feature Vector, Dimensionality Reduction
+	- Occlusion, Saliency, Guided Backpropagation
+	- Some Applications with Feature Maps
+	- Popular Networks (my notes, not in Udacity)
+		- LeNet (1989-1998)
+		- AlexNet (2012)
+		- VGG-16 (2014)
+		- ResNet (2015)
+		- Inception v3 (2015)
+		- DenseNet (2018)
+	- Summary Examples (my notebooks, not in Udacity)
+
 6. Project 1: Facial Keypoint Detection
+	- Forum Question: Project 1: Face Keypoint Detection - Losses Not Decreasing
+	- Learnings: Filter sizes
+
 7. Project 2: Github: Done, nothing special
 
 ## 1. Image Representation & Classification (Lesson 4)
@@ -2693,7 +2727,7 @@ Some interesting links:
 
 ### Forum Question: Project 1: Face Keypoint Detection - Losses Not Decreasing
 
-Learnings:
+Learnings (filter sizes):
 
 - Convolutional ffilter should be odd-sized to have an anchor pixel and prevent aliasing
 - It is better to use 3x3 filters than 5x5 filters, because:
