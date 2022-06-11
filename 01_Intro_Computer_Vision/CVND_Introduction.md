@@ -2106,7 +2106,7 @@ def validate(net, criterion, test_loader):
     # Select device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Transfer model/network to device
-    net.to(device)
+    net.to(device, dtype=torch.float)
     # Calculate accuracy before training
     running_correct = 0
     total = 0
@@ -2117,7 +2117,7 @@ def validate(net, criterion, test_loader):
     for images, labels in test_loader:
         # forward pass to get outputs
         # the outputs are a series of class scores
-        images, labels = images.to(device), labels.to(device)
+        images, labels = images.to(device, dtype=torch.float), labels.to(device, dtype=torch.float)
         outputs = net(images)
         # calculate the loss
         loss = criterion(outputs, labels)
@@ -2146,7 +2146,7 @@ def train(net, n_epochs, train_loader, test_loader, validation=True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Training on {}".format(device))
     # transfer model/network to device
-    net.to(device)
+    net.to(device, dtype=torch.float)
     # set model in traning mode (dropout active)
     net.train()
     train_loss_over_time = [] # to track the loss as the network trains
@@ -2158,7 +2158,7 @@ def train(net, n_epochs, train_loader, test_loader, validation=True):
             # get the input images and their corresponding labels
             inputs, labels = data
             # transfer data to device
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels = inputs.to(device, dtype=torch.float), labels.to(device, dtype=torch.float)
             # zero the parameter (weight) gradients
             optimizer.zero_grad()
             # forward pass to get outputs
@@ -2230,7 +2230,7 @@ class_total = list(0. for i in range(10))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Testing on {}".format(device))
 # transfer model/network to device
-net.to(device)
+net.to(device, dtype=torch.float)
 
 # set the module to evaluation mode (deactivate dropout)
 net.eval()
@@ -2241,7 +2241,7 @@ for batch_i, data in enumerate(test_loader):
     inputs, labels = data
     
     # transfer data to device
-    inputs, labels = inputs.to(device), labels.to(device)
+    inputs, labels = inputs.to(device, dtype=torch.float), labels.to(device, dtype=torch.float)
 
     # forward pass to get outputs
     outputs = net(inputs)
@@ -2303,7 +2303,7 @@ dataiter = iter(test_loader)
 images, labels = dataiter.next()
 # since images and labels are casted to numpy, we need to have the network in CPU
 device = "cpu"
-net.to(device)
+net.to(device, dtype=torch.float)
 
 # get predictions
 preds = np.squeeze(net(images).data.max(1, keepdim=True)[1].numpy())
@@ -2335,6 +2335,8 @@ net = Net()
 
 # Load the net parameters by name
 net.load_state_dict(torch.load('saved_models/model_1.pt'))
+# If we saved the model in a CUDA device, we need to map it to CPU
+# net.load_state_dict(torch.load('saved_models/model_1.pt', map_location=torch.device('cpu')))
 print(net)
 
 ```
@@ -2600,143 +2602,285 @@ Look at the `README.md` there.
 
 ## 6. Project 1: Facial Keypoint Detection
 
-```
-## Project 1: Facial Keypoint Detection
+Original project repository: [P1_Facial_Keypoints](https://github.com/udacity/P1_Facial_Keypoints).  
+Repository cloned to [P1_Facial_Keypoints](https://github.com/mxagar/P1_Facial_Keypoints.git).  
 
-Original repository
-	https://github.com/udacity/P1_Facial_Keypoints
-Repository cloned to
-	https://github.com/mxagar/P1_Facial_Keypoints.git
+Given an image, predict 68 facial keypoints, each with `(x,y)` pixel coordinates:
 
+![Face keypoint detection](./pics/project_face_keypoints.png)
 
-Given an image, predict 68 facial keypoints
-Notebooks which will be graded: 2 & 3; file grade: model.py
-All files
-	Notebook 1 : Loading and Visualizing the Facial Keypoint Data
-	Notebook 2 : Defining and Training a Convolutional Neural Network (CNN) to Predict Facial Keypoints
-	Notebook 3 : Facial Keypoint Detection Using Haar Cascades and your Trained CNN
-	Notebook 4 : Fun Filters and Keypoint Uses
+The [Youtub Faces Dataset](https://www.cs.tau.ac.il/~wolf/ytfaces/) is used. The dataset is in `./data/`:
 
-Evaluation rubric
-	- All files submitted and all questions answered: NB 2, NB 3, model.py
-		LOOK at them in the link
-		https://review.udacity.com/#!/rubrics/1426/view
-	- Each file (NB 2, 3, model.py) has its criteria: look at them
-Extra tasks
-	- Some seem quite interesting: LOOK at them
+- `train/` (3462 images)
+- `traning_frames_keypoints.csv`
+- `test/` (2308 images)
+- `test_frames_keypoints.csv`
 
-Submission
-	- Intsructions in 5th NB in Udacity workspace
-	- If we work locally, upload files
-	- Hit "Submit Project" button
+All files in the project folder:
 
-Udacity Workspace instructions
-	- keep < 2GB
-	- only home folder persists after sessions
-	- when submission home folder < 25MB
-	- check size with `du -h . | tail -1`
-	- do not waste GPU time; use GPU time for training
-	- if "Out of Memory" error, restart the kernel
-	- workspace connection stops after 30 mins of inactivity; if DL training performed, use workspace_utils.py
-		Example using context manager:
-			from workspace_utils import active_session
-			with active_session():
-    			# do long-running work here
-		Example using iterator wrapper:
-			from workspace_utils import keep_awake
-			for i in keep_awake(range(5)):
-			    # do iteration with lots of work here
-	- even with workspace_utils, set the Jupyter notebook to save after cell execution!
+- Notebook 1: Loading and Visualizing the Facial Keypoint Data
+- Notebook 2: Defining and Training a Convolutional Neural Network (CNN) to Predict Facial Keypoints
+- Notebook 3: Facial Keypoint Detection Using Haar Cascades and your Trained CNN
+- Notebook 4: Fun Filters and Keypoint Uses
+- Notebook 5: Submission instructions
+- `models.py`
 
+Notebooks which will be graded: 2 & 3; file graded: `model.py`.
 
-## 1. Load and Visualize Data
+Evaluation [rubric](https://review.udacity.com/#!/rubrics/1426/view):
 
-	Very interesting notebook, because 
-	
-	1) we see how to extract the 2D keypoints and show them on the image
+- All files submitted and all questions answered: NB 2, NB 3, `model.py`	
+- At least one convolutional layer, i.e. `self.conv1 = nn.Conv2d(1, 32, 5)`; start with 2 and increase if necessary.
+- Take in grayscale, square images
+- `data_transform`: rescaling/cropping, normalization, and turning input images into torch Tensors; normalized, square, grayscale image
+- Select appropriate loss function and optimizer for training the mode (regression)
+- Visualize the loss over time/epochs
+- Save your best trained model
+- Answer questions about model architecture
+- Visualize one or more learned feature maps
+- Answer question about feature visualization
+- Use a Haar cascade face detector to detect faces
+- Predict and display the keypoints on each face
 
-		key_pts_frame = pd.read_csv('data/training_frames_keypoints.csv')
+Extra tasks:
 
-		n = 0
-		image_name = key_pts_frame.iloc[n, 0]
-		key_pts = key_pts_frame.iloc[n, 1:].as_matrix()
-		key_pts = key_pts.astype('float').reshape(-1, 2)
+- Initialize the weights of your CNN by sampling a normal distribution or by performing Xavier initialization so that a particular input signal does not get too big or too small as the network trains.
+- In Notebook 4, create face filters that add sunglasses, mustaches, or any .png of your choice to a given face in the correct location.
+- Use the keypoints around a person's mouth to estimate the curvature of their mouth and create a smile recognition algorithm.
+- Use OpenCV's k-means clustering algorithm to extract the most common facial poses (left, middle, or right-facing, etc.).
+- Use the locations of keypoints on two faces to swap those faces.
+- Add a rotation transform to our list of transformations and use it to do data augmentation.
 
-		def show_keypoints(image, key_pts):
-		    """Show image with keypoints"""
-		    plt.imshow(image)
-		    plt.scatter(key_pts[:, 0], key_pts[:, 1], s=20, marker='.', c='m')
+Submission notes:
 
-	2) callable classes are created for loading and transforming data!
+- Intsructions in 5th NB in Udacity workspace
+- If we work locally, upload files
+- Hit "Submit Project" button
 
-		import torch
-		from torch.utils.data import Dataset, DataLoader
-		from torchvision import transforms, utils
+Udacity Workspace instructions:
 
-		class FacialKeypointsDataset(Dataset):
-			def __init__(...): ...
-			def __len__(...): ...
-			def __getitem__(...): ...
-				...
-				# sample is a dictionary of image + np array with 68 2D points
-				# image is transformed!
-				sample = {'image': image, 'keypoints': key_pts}
-				if self.transform:
-		            sample = self.transform(sample)
-
-		class Normalize(object):
-			def __call__(...): ...
-
-		class Rescale(object):
-			def __init__(...): ...
-			def __call__(...): ...
-
-		class RandomCrop(object):
-			def __init__(...): ...
-			def __call__(...): ...
-
-		class ToTensor(object):
-			def __call__(...): ...
-
-		data_transform = transforms.Compose([Rescale(250),
-	                                     RandomCrop(224),
-	                                     Normalize(),
-	                                     ToTensor()])
-
-		transformed_dataset = FacialKeypointsDataset(
-								csv_file='data/training_frames_keypoints.csv',
-		                        root_dir='data/training/',
-		                        transform=data_transform)
-
-		print('Number of images: ', len(transformed_dataset))
-
-		for i in range(5):
-		    sample = transformed_dataset[i]
-		    print(i, sample['image'].size(), sample['keypoints'].size())
-
-
-## 2. Define the Network Architecture
-
-Suggested paper for design ideas
-	
-	Facial Key Points Detection using Deep Convolutional Neural Network - NaimishNet, 2017
-		architecture, summarized:
-			4x (conv2d + activation + maxpool2d + dropout (0.1 - 0.6, increased in later steps))
-				activation: 
-					Exponential Linear Units (ELUs) = RELU but with exponential elbow
-					Linear Activation Functions = RELU without cutting negatives, just a line
-			3x (dense + dropout)
-			adam, RMSProp
-			learing rate: 0.001
-			momentum: 0.9
-			batch size: 128
-			7 million params
-		design decisions
-			5x, 4x produced overfitting
-			multiple architectures trained for 40 epochs
-				behavior observed and extrapolated from experience
-			different initialization schemes used, uniform best
-			different patience levels for early stopping tried, 10% of total epochs used
-			similar to LeNet, as it has been shown to work well for facial keypoint detection
+- keep home < 2GB
+- only home folder persists after sessions
+- when submission home folder < 25MB
+- check size with `du -h . | tail -1`
+- do not waste GPU time; use GPU time for training
+- if "Out of Memory" error, restart the kernel
+- workspace connection stops after 30 mins of inactivity; if DL training performed, use `workspace_utils.py`:
 
 ```
+Example using context manager:
+	from workspace_utils import active_session
+	with active_session():
+		# do long-running work here
+Example using iterator wrapper:
+	from workspace_utils import keep_awake
+	for i in keep_awake(range(5)):
+	    # do iteration with lots of work here
+```
+
+- even with `workspace_utils`, set the Jupyter notebook to save after cell execution!
+
+The data needs to be uploaded to the cloud workspace:
+
+- zip the `data/` folder to be `data.zip`
+- upload `data.zip` to the workspace
+- open Terminal: `mkdir data && unzip data.zip -d /data`
+- remove `data.zip` after it has been inflated: `rm -f data.zip`
+
+Some interesting links:
+
+- [Pytorch data loading tutorial](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html)
+
+### Forum Question: Project 1: Face Keypoint Detection - Losses Not Decreasing
+
+Learnings:
+
+- Convolutional ffilter should be odd-sized to have an anchor pixel and prevent aliasing
+- It is better to use 3x3 filters than 5x5 filters, because:
+	- 3x3 = 9, 5x5 = 25; 3x3 is faster because it has less parameters
+	- Stacking 2 conv layers of 3x3 is equivalent to a conv layer with 5x5
+- 1x1 conv layers are used as bottlenecks, i.e., to reduce the number of channels; thus, avoid them unless we need a bottleneck
+- Usually, MaxPool2d is used with 2x2 size to halven the size of the feature map; pooling removes the artifacts on the boundaries, too!
+- Always test if your weight initialization is better than the default; it might not be
+- Face keypoint detection: reduce from 6 conv + 3 linear to 4 conv + 2 linear
+
+#### Question
+
+Hello,
+
+I am working on the Project #1 of the Computer Vision Nanodegree and I am stuck with the CNN model that needs to be defined in `models.py`. I have solved all the other coding exercises without any problems, but I cannot find an architecture that yields descreasing losses when trained.
+
+- I have tried the architecture sketched in the paper by Agarwal et al. (NaimishNet, linked in the notebooks) and some other - similar architectures, all based on LeNet, but I cannot manage to get decreasing losses.
+- I have tried the usual recommendations to create different architectures, but all failed:
+- I have added dropout (p varying from 0.1 to 0.6)
+- I have added batch normalization (in the first convolutional layers)
+- I have decreased and increased the learning rate (always in a range of 0.0003 and 0.1)
+- I have applied Xavier initialization
+- I have used different loss functions: MSE, SmoothL1
+- I have increased the number of layers and parameters (all model variations have between 20M - 40M trained parameters)
+
+I perform a cross-validation run after every epoch and I store the history of the training and validation loss. In all cases, the loss values oscillate around their initial value.
+
+In the following, I attach two example models I have tried and their results.
+
+My repository can be found at:
+https://github.com/mxagar/P1_Facial_Keypoints
+
+Please, could you please help me?
+
+Thank you,
+Mikel
+
+```
+### Model 1
+
+Net(
+(conv1): Conv2d(1, 32, kernel_size=(5, 5), stride=(1, 1))
+(pool1): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(conv2): Conv2d(32, 64, kernel_size=(5, 5), stride=(1, 1))
+(pool2): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(conv3): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1))
+(pool3): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(conv4): Conv2d(128, 256, kernel_size=(2, 2), stride=(1, 1))
+(pool4): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(conv5): Conv2d(256, 512, kernel_size=(1, 1), stride=(1, 1))
+(pool5): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(dropout5): Dropout(p=0.5, inplace=False)
+(conv6): Conv2d(512, 1024, kernel_size=(1, 1), stride=(1, 1))
+(pool6): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(dropout6): Dropout(p=0.5, inplace=False)
+(linear1): Linear(in_features=9216, out_features=2000, bias=True)
+(dropout7): Dropout(p=0.5, inplace=False)
+(linear2): Linear(in_features=2000, out_features=500, bias=True)
+(dropout8): Dropout(p=0.5, inplace=False)
+(linear3): Linear(in_features=500, out_features=136, bias=True)
+)
+
+- Number of parameters: 20416812
+- Xavier initialization
+- criterion = nn.MSELoss()
+- optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+Training output:
+Epoch: 1, Training Loss: 0.020920200698434928, Validation Loss: 0.020428773799499908
+Epoch: 2, Training Loss: 0.020777514237740494, Validation Loss: 0.020857440999576024
+Epoch: 3, Training Loss: 0.020643692263490818, Validation Loss: 0.021000844859457635
+Epoch: 4, Training Loss: 0.02084479694900865, Validation Loss: 0.01977874156716582
+...
+Epoch: 28, Training Loss: 0.021002676878135236, Validation Loss: 0.01979653277954498
+Epoch: 29, Training Loss: 0.02087379113950184, Validation Loss: 0.01936164227398959
+Epoch: 30, Training Loss: 0.02093802300372749, Validation Loss: 0.019763932057789393
+Finished Training!
+
+### Model 2
+
+Net(
+(conv1): Conv2d(1, 32, kernel_size=(5, 5), stride=(1, 1))
+(pool1): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(conv2): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1))
+(pool2): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(conv3): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1))
+(pool3): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(conv4): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+(pool4): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+(fc1): Linear(in_features=10816, out_features=4096, bias=True)
+(fc1_dropout): Dropout(p=0.5)
+(fc2): Linear(in_features=4096, out_features=1024, bias=True)
+(fc2_dropout): Dropout(p=0.5)
+(fc3): Linear(in_features=1024, out_features=136, bias=True)
+)
+
+- Number of parameters: 48673896
+- Xavier initialization
+- criterion = nn.SmoothL1Loss()
+- optimizer = optim.Adam(net.parameters(), lr=0.0003)
+
+Training output:
+Epoch: 1, Batch: 10, Avg. Loss: 0.2838428482413292
+Epoch: 1, Batch: 20, Avg. Loss: 0.3179457187652588
+Epoch: 1, Batch: 30, Avg. Loss: 0.29876292794942855
+...
+Epoch: 39, Batch: 100, Avg. Loss: 0.31495306342840196
+Epoch: 39, Batch: 110, Avg. Loss: 0.27538169324398043
+Epoch: 39, Batch: 120, Avg. Loss: 0.2962385803461075
+Epoch: 39, Batch: 130, Avg. Loss: 0.29411947876214983
+```
+
+#### Answer
+
+Hi Mikel S,
+
+The one issue I see is with the kernel sizes in the convolution layers.
+
+	self.conv1=nn.Conv2d(1, 32, 5)
+	self.conv2=nn.Conv2d(32, 64, 5)
+	self.conv3=nn.Conv2d(64, 128, 3)
+	self.conv4=nn.Conv2d(128, 256, 2)
+	self.conv5=nn.Conv2d(256, 512, 1)
+	self.conv6=nn.Conv2d(512, 1024, 1)
+
+The kernel size in conv1 and conv2 is 5x5, and conv3 is 3x3. This is fine.
+But I would like to know why you chose 2x2 for conv4, and 1x1 for conv5 and conv6??
+
+Let me explain a little bit about choosing kernel size.
+
+The odd size(3, 5, 7) kernels in convolution layers captures spatial information efficiently since they have a central pixel/data as reference. 3x3 kernel size achieves this while maintaining good performance over larger kernel sizes. Hence, using 3x3 instead of 5x5 improves the performance of the model. In fact 2 layers with 3x3 kernels is same as 1 layer with 5x5 kernel.
+
+1x1 is used as bottleneck layers in huge networks and may not be necessary in this small model.
+2x2 kernels are used mostly in pooling layers, there is some information loss or information filter that happens in pooling. Hence choosing a smaller window is better in this case.
+
+There may not be any hard and fast rule in the choice of kernel sizes but this does affect the performance and even accuracy of a model.
+
+More Info:
+
+https://medium.com/analytics-vidhya/significance-of-kernel-size-200d769aecb1
+
+https://datascience.stackexchange.com/questions/23183/why-convolutions-always-use-odd-numbers-as-filter-size
+
+The other point is about weight initialization, you have the custom initialize_weights() which is fine. In most model the default initialization available with packages like Pytorch perform well. When you have a custom weight initialization you should have a strong reason and be sure that it is performing better than the default weight initialization. So please test with both to be sure, keep the other parameters and design constant.
+
+Next point is the number of layers. You have 6 convolution layers and 3 linear layers. Having more layers and parameters help only to certain extent. The training time/epochs will depend on the number of trainable parameters as well. More parameters will take more time and resources to train. I recommend 4 convolution layers and 2 Linear layers.
+
+
+#### Follow Up
+
+Dear Meera,
+
+Thank you very much for your recommendations and the informative links.
+
+I have applied what you told me, but the loss keeps oscillating around the initial value without significant improvements.
+
+Here is a list of all the changes I made:
+
+- I changed the architecture to be a sequence of 4 convolution layers and 2 linear layers; dropout is in the last 4 layers, but I removed batch normalization from the initial layers.
+- I commented out my Xavier initialization.
+- I simplified the `train_net` function to the original one (+ tracking of the loss), in case the validation pass I added was causing the missbehavior.
+
+You can find my latest architecture version and the training output in the following Github link:
+
+https://github.com/mxagar/P1_Facial_Keypoints
+
+Below, I add the summary of the architecture.
+
+Could you please try it on your machine and tell me if you replicate the results? What should I try?
+
+Thank you again,
+Mikel
+
+Hi Meera,
+
+Before you try it, I think I might have solved the issue. The switch `model.eval()` and the use of CUDA seem to behave strangely.
+I re-wrote my validation function inside the training function and added this line before running the training
+
+	torch.backends.cudnn.enabled = False
+
+... and now everything works with any model architecture I have defined previously. I cannot replicate everything 100% so as to point to the real cause, but maybe you should keep this comments documented in case someone falls into the same situation when using GPUs.
+
+More info:
+
+https://stackoverflow.com/questions/48445942/pytorch-training-with-gpu-gives-worse-error-than-training-the-same-thing-with-c
+
+https://discuss.pytorch.org/t/when-should-we-set-torch-backends-cudnn-enabled-to-false-especially-for-lstm/106571
+
+Thank you again,
+Mikel
