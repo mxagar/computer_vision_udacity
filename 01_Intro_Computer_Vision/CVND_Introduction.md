@@ -2742,6 +2742,13 @@ Interesting links provided by the reviewer:
 
 - [An Intuitive Explanation of Convolutional Neural Networks](https://ujjwalkarn.me/2016/08/11/intuitive-explanation-convnets/)
 - [Book Chapter: Practical Methodology, by Goodfellow](https://www.deeplearningbook.org/contents/guidelines.html)
+- [Facial Keypoints Detection](https://www.kaggle.com/competitions/facial-keypoints-detection/data)
+- [PyTorch Loss Functions: The Ultimate Guide](https://neptune.ai/blog/pytorch-loss-functions)
+- [Facial keypoints detection using Neural Network](http://cs231n.stanford.edu/reports/2016/pdfs/007_Report.pdf)
+- [Facial Keypoints Detection: An Effort to Top the Kaggle Leaderboard](https://www.ischool.berkeley.edu/projects/2015/facial-keypoints-detection-effort-top-kaggle-leaderboard)
+- [VISUALIZING MODELS, DATA, AND TRAINING WITH TENSORBOARD](https://pytorch.org/tutorials/intermediate/tensorboard_tutorial.html)
+- [Neural Architecture Search (NAS)- The Future of Deep Learning](https://theaiacademy.blogspot.com/2020/05/neural-architecture-search-nas-future.html)
+- [How Hyperparameter Tuning Works](https://docs.aws.amazon.com/sagemaker/latest/dg/automatic-model-tuning-how-it-works.html)
 
 ### Forum Question: Project 1: Face Keypoint Detection - Losses Not Decreasing
 

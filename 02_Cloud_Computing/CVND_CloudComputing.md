@@ -48,6 +48,9 @@ pip install mkl-service
 
 1. Cloud Computing with Google Cloud (It did not work!)
 2. Cloud Computing with AWS EC2
+	- 2.1 Launch EC2 Instances
+	- 2.2 Connect to an Instance
+	- 2.3 Pricing
 
 ## 1. Cloud Computing with Google Cloud
 
@@ -185,28 +188,42 @@ Select region on menu, top-right: Ireland, `eu-west-1`. Selecting a region **ver
 
 Press: **Launch Instance**.
 
-Follow steps:
+Follow these steps:
 
-1. Choose an Amazon Machine Image (AMI) - An AMI is a template that contains the software configuration (operating system, application server, and applications) required to launch your instance. I looked for specific AMIs on the search bar and selected `Deep Learning AMI (Amazon Linux 2) Version 61.3`.
-2. Choose an Instance Type - Instance Type offers varying combinations of CPUs, memory (GB), storage (GB), types of network performance, and availability of IPv6 support. AWS offers a variety of Instance Types, broadly categorized in 5 categories. You can choose an Instance Type that fits our use case. The specific type of GPU instance you should launch for this tutorial is called `p2.xlarge`. I asked to inccrease the limit for EC2 in the support/EC2-Limits menu option to select `p2.xlarge`; meanwhile, I chose `t2.micro`, elegible for the free tier.
+1. Choose an Amazon Machine Image (AMI) - An AMI is a template that contains the software configuration (operating system, application server, and applications) required to launch your instance. I looked for specific AMIs on the search bar (keyword "deep learning") and selected `Deep Learning AMI (Amazon Linux 2) Version 61.3` and `Deep Learning AMI (Amazon Linux 2) Version 61.3` for different instances. Depending on which we use, we need to install different dependencies.
+
+2. Choose an Instance Type - Instance Type offers varying combinations of CPUs, memory (GB), storage (GB), types of network performance, and availability of IPv6 support. AWS offers a variety of Instance Types, broadly categorized in 5 categories. You can choose an Instance Type that fits our use case. The specific type of GPU instance you should launch for this tutorial is called `p2.xlarge` (P2 family). I asked to increase the limit for EC2 in the support/EC2-Limits menu option to select `p2.xlarge`, but they did not grant it to me; meanwhile, I chose `t2.micro`, elegible for the free tier.
+
 3. Configure Instance Details - Provide the instance count and configuration details, such as, network, subnet, behavior, monitoring, etc.
-4. Add Storage - You can choose to attach either SSD or Standard Magnetic drive to your instance.
+
+4. Add Storage - You can choose to attach either SSD or Standard Magnetic drive to your instance. Each instance type has its own minimum storage requirement.
+
 5. Add Tags - A tag serves as a label that you can attach to multiple AWS resources, such as volumes, instances or both.
+
 6. Configure Security Group - Attach a set of firewall rules to your instance(s) that controls the incoming traffic to your instance(s). You can select or create a new security group; when you create one:
 	- Select: Allow SSH traffic from anywhere
-	- Then, when you launch the instance, you edit the security group
+	- Then, when you launch the instance, **you edit the security group later**
+	- We can also select an existing security group
+
 7. Review - Review your instance launch details before the launch.
-8. I was asked to create a key-pair; I created one with the name `face-keypoint-detection`using RSA. You can use a key pair to securely connect to your instance. Ensure that you have access to the selected key pair before you launch the instance. A file `face-keypoint-detection.pem`was automatically downloaded.
+
+8. I was asked to create a key-pair; I created one with the name `face-keypoints` using RSA. You can use a key pair to securely connect to your instance. Ensure that you have access to the selected key pair before you launch the instance. A file `face-keypoints.pem` was automatically downloaded.
 
 More on [P2 instances](https://aws.amazon.com/ec2/instance-types/p2/)
 
-Edittting the security group: left menu, `Network & Security` > `Security Groups`:
+Important: Edittting the security group: left menu, `Network & Security` > `Security Groups`:
 
 - Select the security group associated with the created instance (look in EC2 dashboard table)
-- Inbound rules (manage/create/add rule): SSH, 0.0.0.0/0, Port 22
+- Inbound rules (manage/create/add rule):
+	- SSH, 0.0.0.0/0, Port 22
+	- Jupyter, 0.0.0.0/0, Port 8888
+	- HTTPS (Github), 0.0.0.0/0, Port 443
 - Outbound rules (manage/create/add rule):
 	- SSH, 0.0.0.0/0, Port 22
 	- Jupyter, 0.0.0.0/0, Port 8888
+	- HTTPS (Github), 0.0.0.0/0, Port 443
+
+If we don't edit the security group, we won't be able to communicate with the instance in the required ports!
 
 **Important: Always shut down / stop all instances if not in use to avoid costs! We can re-start afterwards!**. AWS charges primarily for running instances, so most of the charges will cease once you stop the instance. However, there are smaller storage charges that continue to accrue until you **terminate** (i.e. delete) the instance.
 
@@ -214,5 +231,63 @@ We can also set billing alarms.
 
 ### 2.2 Connect to an Instance
 
+Once the instance is created, 
 
+1. We `start` it: 
+
+	- EC2 dashboard
+	- Instances
+	- Select instance
+	- Instance state > Start
+
+2. We connect to it from our local shell
+
+```bash
+# Go to the folder where the instance key pem file is located
+cd .../project
+# Make sure the pem file is only readable by me
+chmod 400 face-keypoints.pem
+# Connect to instance
+# user: 'ec2-user' if Amazon Image, 'ubuntu' if Ubuntu image
+# Public IP: DNS or IP number specified in AWS EC2 instance properties
+# ssh -i <pem-filename>.pem <user>@<public-IP>
+ssh -i face-keypoints.pem ec2-user@3.248.188.159
+# We need to generate a jupyter config file
+jupyter notebook --generate-config
+# Make sure that
+# ~/.jupyter/jupyter_notebook_config.py
+# contains 
+# c.NotebookApp.ip = '*'
+# Or, alternatively, directly change it:
+sed -ie "s/#c.NotebookApp.ip = 'localhost'/#c.NotebookApp.ip = '*'/g" ~/.jupyter/jupyter_notebook_config.py
+# Clone or download the code
+# Note that the SSH version of the repo URL cannot be downloaded;
+# I understand that's because the SSH version is user-bound 
+git clone https://github.com/mxagar/P1_Facial_Keypoints.git
+# Go to downloaded repo
+cd P1_Facial_Keypoints
+# When I tried to install the repo dependencies
+# I got some version errors, so I stopped and
+# I did not install the dependencies.
+# However, in a regular situation, we would need to install them.
+# Also, maybe:
+# pip install --upgrade setuptools.
+sudo python3 -m pip install -r requirements.txt
+# Launch the Jupyter notebook without a browser
+jupyter notebook --ip=0.0.0.0 --no-browser
+# IMPORTANT: catch/copy the token string value displayed:
+# http://127.0.0.1:8888/?token=<token-string>
+```
+
+3. Open our local browser on this URL, composed by the public IP of the EC2 instance we have running and the Jupyter token:
+
+```
+http://<public-IP>:8888/?token=<token-string>
+```
+
+### 2.3 Pricing
+
+Always stop & terminate instances that we don't need! Terminates erases any data we have on the instance!
+
+[Amazon EC2 On-Demand Pricing](https://aws.amazon.com/ec2/pricing/on-demand/)
 
