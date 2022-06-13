@@ -147,8 +147,8 @@ pip install mkl-service
 	- Summary Examples (my notebooks, not in Udacity)
 
 6. Project 1: Facial Keypoint Detection
+	- Important Learnings: Filter sizes & Co.
 	- Forum Question: Project 1: Face Keypoint Detection - Losses Not Decreasing
-	- Learnings: Filter sizes
 
 7. Project 2: Github: Done, nothing special
 
@@ -2725,9 +2725,7 @@ Some interesting links:
 
 - [Pytorch data loading tutorial](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html)
 
-### Forum Question: Project 1: Face Keypoint Detection - Losses Not Decreasing
-
-Learnings (filter sizes):
+### Important Learnings
 
 - Convolutional ffilter should be odd-sized to have an anchor pixel and prevent aliasing
 - It is better to use 3x3 filters than 5x5 filters, because:
@@ -2737,6 +2735,15 @@ Learnings (filter sizes):
 - Usually, MaxPool2d is used with 2x2 size to halven the size of the feature map; pooling removes the artifacts on the boundaries, too!
 - Always test if your weight initialization is better than the default; it might not be
 - Face keypoint detection: reduce from 6 conv + 3 linear to 4 conv + 2 linear
+- Adam is good to avoid saddle points / local optima
+- Larger batch size values increase traning speed because more data points are processed in parallel, but they decrease the generalization capability, i.e., the final accuracy is decreased.
+
+Interesting links provided by the reviewer:
+
+- [An Intuitive Explanation of Convolutional Neural Networks](https://ujjwalkarn.me/2016/08/11/intuitive-explanation-convnets/)
+- [Book Chapter: Practical Methodology, by Goodfellow](https://www.deeplearningbook.org/contents/guidelines.html)
+
+### Forum Question: Project 1: Face Keypoint Detection - Losses Not Decreasing
 
 #### Question
 

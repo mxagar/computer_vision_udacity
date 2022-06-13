@@ -51,3 +51,27 @@ pip install mkl-service
 
 ## 1. Cloud Computing with Google Cloud
 
+### 1.1 Create a New Project & Define Quotas & Setup Account
+
+Go to Google CLoud Console: [https://console.cloud.google.com/](https://console.cloud.google.com/)
+
+Select the current project on the horizontal menu (`My First Project`).
+
+Then, on the pop up menu: `Create New Project`: `facial-keypoints-1`.
+
+Now, on the hamburger menu: `IAM & Admin` > `Quotas`
+
+Maybe we are requested to set our billing information.
+
+I had to enable the `Compute Engine API`: Hamburger menu, `APIs & Services` > Library: Select `Compute Engine API`. Then, I had to set a billing account with 3-month free trial.
+
+I had to upgrade the account: Hamburger menu, `Bulling` > `Upgrade`.
+
+Again, on the hamburger menu: `IAM & Admin` > `Quotas`: Filter table and select a quota:
+
+- Service: `Compute Engine API`
+- Metric: GPU, `compute.googleapis.com/nvidia_k80_gpus`
+- Dimensions (location): select one nearby: `europe-west-1`
+
+We can edit quotas, i.e., increase quota limits: `EDIT QUOTAS`
+
