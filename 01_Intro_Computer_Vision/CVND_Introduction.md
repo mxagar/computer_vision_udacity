@@ -2528,6 +2528,9 @@ With **guided backpropagation** the gradient of the activated outputs of a neuro
 
 See handwritten notes.
 
+Very interesting link: [An Intuitive Guide to Deep Network Architectures](https://towardsdatascience.com/an-intuitive-guide-to-deep-network-architectures-65fdc477db41)
+
+
 #### LeNet (1989-1998)
 
 [LeNet](https://en.wikipedia.org/wiki/LeNet) is the first CNN architecture, published by Yann LeCun in 1989.
@@ -2574,11 +2577,15 @@ Some features:
 [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)  
 Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
 
-Look at this Medium article: [Review: ResNet, by Sik-Ho Tsang](https://towardsdatascience.com/review-resnet-winner-of-ilsvrc-2015-image-classification-localization-detection-e39402bfa5d8)
+Look at this Medium article: [Review: ResNet, by Sik-Ho Tsang](https://towardsdatascience.com/review-resnet-winner-of-ilsvrc-2015-image-classification-localization-detection-e39402bfa5d8).
+
+Also: [An Intuitive Guide to Deep Network Architectures](https://towardsdatascience.com/an-intuitive-guide-to-deep-network-architectures-65fdc477db41).
 
 Deep learning neural networks have the **vanishing/exploding gradient problem**: since the error is backpropagated with chain multiplications, large or small values are magnified, thus, loosing information. This problem is more accute when the number of layers increases.
 
 ResNets, in contrast, can have many layers but they avoid the vanishing/exploding gradient problem. They achieve that with skip/shortcut connections: inputs from previous layers are taken without any modifications.
+
+Therefore, the network learns the residual between two layers. When the gradient is backpropagated, the shortcut connections allow for it to not increase/decrease exponentially. The result is we can add many layers without decreasing the performance; more layers mean more training time, but also the ability to learn more complex patterns.
 
 ResNets applied of these important features:
 
@@ -2598,9 +2605,11 @@ As we increase the layers, the accuracy increases, but the speed decreases; **Re
 [Rethinking the Inception Architecture for Computer Vision](https://arxiv.org/abs/1512.00567)  
 Christian Szegedy, Vincent Vanhoucke, Sergey Ioffe, Jonathon Shlens, Zbigniew Wojna (2015)
 
-Look at this Medium article: [Review: Inception-v3, by Sik-Ho Tsang](https://sh-tsang.medium.com/review-inception-v3-1st-runner-up-image-classification-in-ilsvrc-2015-17915421f77c)
+Look at this Medium article: [Review: Inception-v3, by Sik-Ho Tsang](https://sh-tsang.medium.com/review-inception-v3-1st-runner-up-image-classification-in-ilsvrc-2015-17915421f77c).
 
-They achieved a deep network (42 layers) with much less parameters.
+Also: [An Intuitive Guide to Deep Network Architectures](https://towardsdatascience.com/an-intuitive-guide-to-deep-network-architectures-65fdc477db41).
+
+They achieved a deep network (42 layers) with much less parameters. If ResNets try to go deep, Inception networks try to go wide.
 
 The key concepts that made that possible are:
 
