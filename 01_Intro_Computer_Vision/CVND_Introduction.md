@@ -2540,8 +2540,11 @@ With **guided backpropagation** the gradient of the activated outputs of a neuro
 
 See handwritten notes.
 
-Very interesting link: [An Intuitive Guide to Deep Network Architectures](https://towardsdatascience.com/an-intuitive-guide-to-deep-network-architectures-65fdc477db41)
+Some very interesting links:
 
+- [An Intuitive Guide to Deep Network Architectures](https://towardsdatascience.com/an-intuitive-guide-to-deep-network-architectures-65fdc477db41)
+- [Vanishing Gradient - Why are deep neural networks hard to train? Michael Nielsen](http://neuralnetworksanddeeplearning.com/chap5.html)
+- [CNN Benchmarks](https://github.com/jcjohnson/cnn-benchmarks)
 
 #### LeNet (1989-1998)
 
