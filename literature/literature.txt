@@ -1,0 +1,16 @@
+SrivastavaHinton_JMLRdropout_2014.pdf
+	Paper describing the advantages of dropout for the first time.
+
+SabourFrosstHinton_DynamicRoutingCapsules_2017.pdf
+	Capsule networks. Paper used by Cezanne Camacho for her blog post:
+	https://cezannec.github.io/Capsule_Networks/
+	https://github.com/cezannec/capsule_net_pytorch
+
+KritzhevskySutskeverHinton_AlexNet_2012.pdf
+	AlexNet
+
+He_ResNet_2015.pdf
+	ResNet
+
+SimonyanZissermann_VGG_2015.pdf
+	VGG

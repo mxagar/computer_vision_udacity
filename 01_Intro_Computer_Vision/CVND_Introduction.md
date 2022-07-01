@@ -1993,6 +1993,13 @@ Net(
 
 ```
 
+Note that my define architecture has some issues:
+
+- It makes no sense to apply relu after `MaxPool2d`
+- Defining one `MaxPool2d(2,2)` are re-using it is enough, because we don't learn parameters.
+- It is better to add a padding so that the size of the feature map (WxH) is constant.
+- The Conv2d in/out change formula is: W_out = (W_in + 2P - F)/S + 1 (don't forget the padding!)
+
 In the following, the most important parts of the notebook are summarized:
 
 1. Load and visualize the dataset
@@ -2103,6 +2110,11 @@ class Net(nn.Module):
         
     # Feedforward pass
     def forward(self, x):
+    	# This architecture has several issues:
+    	# - It makes no sense to apply relu after MaxPool2d
+    	# - Defining one MaxPool2d(2,2) are re-using it is enough, because we don't learn parameters.
+    	# - It is better to add a padding so that the size of the feature map (WxH) is constant
+    	# - The Conv2d in/out change formula is: W_out = (W_in + 2P - F)/S + 1 (don't forget the padding!)
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.pool1(x))
@@ -2552,12 +2564,14 @@ Some features:
 
 - 2 GPUs used, faster
 - 1000 classes 
-- ReLU used
+- **ReLU used for the first time**
 - 8 layers and 3 max-pooling: 5 convolutional, 3 dense
 - 60M parameters, 650k neurons
 - Data augmentation used to prevent overfitting
-- Dropout (p=0.5) in the first two dense layers
+- **Dropout (p=0.5) in the first two dense layers - used for the first time**
 - Momentum = 0.9, weight decay = 0.0005
+
+Look at the paper in the `literature/` folder.
 
 #### VGG-16 (2014)
 
@@ -2567,10 +2581,13 @@ Visual Geometry Group, Oxford.
 
 Some features:
 
-- Smaller filters used (3x3): less paramaters, faster.
+- Smaller filters used, 3x3, incontrast to 11x11 from AlexNet: less paramaters, faster. **They pioneered those smaller convolutional filters.**
+- Elegant structure composed by convolutions followed by max-pooling.
 - More layers than AlexNet; the optimum amount is 16.
 
 ![VGG-16](./pics/vgg-16.png)
+
+Look at the paper in the `literature/` folder.
 
 #### ResNet (2015)
 
@@ -2585,20 +2602,28 @@ Deep learning neural networks have the **vanishing/exploding gradient problem**:
 
 ResNets, in contrast, can have many layers but they avoid the vanishing/exploding gradient problem. They achieve that with skip/shortcut connections: inputs from previous layers are taken without any modifications.
 
-Therefore, the network learns the residual between two layers. When the gradient is backpropagated, the shortcut connections allow for it to not increase/decrease exponentially. The result is we can add many layers without decreasing the performance; more layers mean more training time, but also the ability to learn more complex patterns.
+![ResNet Building Blocks](./pics/resnet_building_block.png)
+
+Therefore, the network learns the residual between two layers. When the gradient is backpropagated, the shortcut connections prevent it from increasing/decreasing exponentially. The result is that we can add many layers without decreasing the performance; more layers mean more training time, but also the ability to learn more complex patterns. ResNets achieve super-human accuracy.
+
+Apart from these shortcuts, ResNets have similar building elements as VGG nets: convolutions of 3x3 and max-pooling.
+
+![ResNet Architecture](./pics/resnet_architecture.png)
 
 ResNets applied of these important features:
 
 1. **Skip/shortcut connections**: even with vanishing/exploding gradients the information is not lost, because the inputs from previous layers are preserved. However, the weights are optimized with the residual mapping (removing the previous input).
 
-2. **Bottleneck design with 1x1 convolutions**: 1x1 convolutions preserve the WxH size of the feature map but can reduce its depth. Therefore, they can reduce complexity. With them, it is possible to addd more layers!
+2. **Bottleneck design with 1x1 convolutions**: 1x1 convolutions preserve the WxH size of the feature map but can reduce its depth. Therefore, they can reduce complexity. With them, it is possible to ad more layers!
 
 The result is that:
 
-- Deeper netorks with less parameters: faster to train and use
-- Increased accuracy
+- Deeper netorks with less parameters: faster to train and use.
+- Increased accuracy.
 
 As we increase the layers, the accuracy increases, but the speed decreases; **ResNet-50 is a good trade-off**.
+
+Look at the paper in the `literature/` folder.
 
 #### Inception v3 (2015)
 
