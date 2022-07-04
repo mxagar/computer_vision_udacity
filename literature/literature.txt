@@ -14,3 +14,9 @@ He_ResNet_2015.pdf
 
 SimonyanZissermann_VGG_2015.pdf
 	VGG
+
+RedmonFarhadi_YOLO_2015.pdf
+	You Only Look Once: YOLO
+
+RedmonFarhadi_YOLO_v3_2018.pdf
+	You Only Look Once: YOLO, v3

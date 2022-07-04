@@ -145,7 +145,7 @@ The steps are the following:
 - The image is convoluted until a given layer, which produces a set of feature maps.
 - Instead of projecting ROIs on those feature maps, we feed them to a separate network which predicts possible ROIs: these are called **Region Proposal Networks**; if edges or other relevant features have been detected, ROIs that enclose them will emerge.
 - The ROI proposals are passed to the original network, which performs a quick binary check: does the ROI contain an object or not? If so, the ROI is taken.
-- After that, the network continues as in Fast R-CNN: ROI pooling is applied and a fully connected network predicts classes an bounding boxes.
+- After that, the network continues as in Fast R-CNN: ROI pooling is applied and a fully connected network predicts classes and bounding boxes.
 
 Thus, the difference is in the ROIs: instead of projecting them after applying classical algorithms, a Region Proposal Network is used with the feature maps. The Faster R-CNNs are the fastest R-CNN networks.
 
@@ -158,15 +158,14 @@ They work in a similar fashion as the YOLO network does; see the next section on
 The basic principle is as follows:
 
 - A small (usually 3x3) window is slided on the feature maps. I understand that 3x3 means the stride in both axes, since I don't see how the content of the window is used otherwise.
-- `k` anchor boxes are applied on each window. These anchor boxes are predefined boxes with different aspect ratios.
+- `k` anchor boxes are applied on each window. These anchor boxes are pre-defined boxes with different aspect ratios.
 - For each `k` boxes in each window, the probability of it containing an object is measured. If it's higher than a threshold, the anchor box is suggested as a ROI.
 
 During training, the ground truth is given by the real boudning box: if the suggested ROI overlaps considerably with a true bounding box, the suggestion is correct.
 
 Very interesting link on the topic: [Deep Learning for Object Detection: A Comprehensive Review](https://towardsdatascience.com/deep-learning-for-object-detection-a-comprehensive-review-73930816d8d9)
 
-
-A Github repo witha peer reviewed implementation of the Faster R-CNN: [
+A Github repo with a peer reviewed implementation of the Faster R-CNN: [
 faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch)
 
 ## 2. YOLO: You Only Look Once
@@ -176,4 +175,154 @@ There are some alternatives to R-CNN networks that came out around the same time
 - YOLO: You Only Look Once
 - SSD: Single Shot Detection
 
-This section analyzes YOLO.
+This section analyzes YOLO. Look in at the literature folder for the paper.
+
+The advantage of YOLO is that it works in realtime! Thus, it prioritizes fast object detection and it can be used in applications such like self-driving cars. In addition to localizing the bounding boxes, some important object types/classes are predicted: pedestrians, traffic lights, vehicles, etc.
+
+As explained in the previous section, object detection networks perform classification and regression tasks. Instead of seggregating both tasks into separate outputs, we can compile them both into a single vector. For instance, if we want to find 3 classes of objects, the output vector would be:
+
+`[p_c, c_1, c_2, c_3, x, y, w, h]`, where
+
+- `p_c = [0,1]`: probability of the box of containing an object
+- `c_1, c_2, c_3`: probabilities of the object being oc class 1-3
+- `x, y, w, h`: location and size of the bounding box
+
+### 2.1 Sliding Windows
+
+Faster R-CNNs work with a sliding window of small stride and varying window sizes to detect possible regions that contain object candidates. Those windows are set over anchor points defined by the stride we use.
+
+Sliding a window and testing different bounding boxes is very expensive; additionally, we can take into account the following observation:
+
+- The different bounding boxes we test overlap with each other.
+- If we overlap all bounding boxes in all the anchor points, we get a (non-uniform) grid.
+
+Thus, it makes sense to use the whole image once with a grid of non-overlapping cells on it! YOLO uses a grid instead of sliding windows, in addition to two other techniques, known as **Intersection Over Union** and **Non-Maximal Suppression**. Those techniques are one of the reasons why YOLO works so well.
+
+### 2.2 Grids insted of Sliding Windows
+
+In YOLO, the image is tesselated in a uniform grid. Each grid cell contains the aforementioned information:
+
+- The probability of the cell to contain an object: *objectness*.
+- One probability value for each of the object classes.
+- The location and size of the object bounding box.
+
+Additionally, all continuous values are normalized to the `[0,1]` region:
+
+- Location of the center of bounding box `(x,y)`: in coordinates relative to the cell.
+- Size of the boundingbox `(w,h)`: in relative size of the image.
+
+This normalization improves the training convergence.
+
+Thus, if we have 3 object classes in a grid of `W x H` cells, we have a final classification map of 8 channels; concretely, the final size/volume will be:
+
+`Volume = W x H x 8`,
+
+where the size of 8 for the channels comes from the vector:
+
+`g_ij = [p_c, c_1, c_2, c_3, x, y, w, h]`, for each cell `(i,j)`.
+
+When there is no object in a cell, the value the the objectness should be 0, and the rest of values are ignored. When `p_c -> 1`, we start looking at the other values.
+
+![YOLO grid](./pics/YOLO_grid.png)
+
+In order to train a network with such an output, we need to create such a ` W x H x 8` ground truth tensor for each image.
+
+#### Ground Truth Bounding Boxes
+
+Even though several grid cells overlap with the real bounding box, only the cell which contains the center of the bounidng box is asssigned with the bounding box values:
+
+- Objectness `p_c = 1`.
+- Center `(x,y)`: with coordinates relative to the cell.
+- Size `(w,h)`: with size relative to the complete image size.
+
+IMPORTANT: **if the center of the ground truth bounding box is not in a cell, even though the cell is overlapped by the bounding box, its `p_c = 0`**.
+
+![YOLO bounding boxes](./pics/YOLO_bounding_boxes.png)
+
+### 2.3 Intersection over Union (IoU) and Non-Maximal Supression
+
+The architecture explained so far outputs too many bounding boxes for the same object candidate if we have a fine grid (as we sould have).
+
+Thus, we need to select the best candidates; that is done with **Intersection over Union (IoU) and Non-Maximal Supression**.
+
+![YOLO many boxes](./pics/YOLO_many_boxes.png)
+
+The **Intersection over the union** between two bounding boxesis computed as follows:
+
+`IoU = area of intersection / area of union = [0,1]`.
+
+![Intersection over Union (IoU)](./pics/YOLO_IoU.png)
+
+**Non-Maximal Supression** works with the following steps:
+
+1. Go through all cells and take the ones which have `p_c > nms_thres = 0.6` (or a value of choice).
+2. Take the cell with the largest `p_c`.
+3. Compute the IoUs of the other bounding boxes with respect to the one with the largest `p_c`.
+4. Remove all bounding boxes which have a high IoU value, e.g., `IoU >= iou_thres = 0.4`.
+5. Repeat from step 2 using the cells that are remaining.
+
+Note that in case of oveerlap, this algorithm would not work, since the overlapping object would default to one.
+
+In order to work with overlapping objects, we use **anchor boxes**.
+
+#### Anchor Boxes
+
+It can happen that one grid cell contains the centers of two bounding boxes for two different objects that overlap in the image; for instance, a person entereing a car.
+
+In order to deal with that we can define object specific **anchor boxes** that are associated with a pre-defined aspect ratio:
+
+- Anchor box 1: large and wide (car)
+- Anchor box 2: medium and tall (person)
+- ...
+
+The number of channels is multiplied by the number of anchor boxes `n`. That ways, for labelling, the segment of the output vector which corresponds to the anchor box with the largest IoU with the ground truth is filled.
+
+![Anchor Boxes](./pics/YOLO_anchor_boxes.png)
+
+We can define as many anchor boxes as we want. Note that:
+
+- We limit the amount of possible overlapping objects to the number of anchor boxes.
+- To be detected, the overlapping objects should be associated with the size and aspect ratio of one of the anchor boxes.
+- Thus, several overlapping objects of the same class are difficult to detect, unless we have foreseen several similar anchor boxes.
+
+However, note that anchor boxes work on the cell level; that is, we can define a fine enough grid so that overlapping bounding box centers are fairly few!
+
+In that way, we define few anchor boxes of significant sizes and YOLO runs nicely.
+
+[Medium post on Anchor Boxes](https://vivek-yadav.medium.com/part-1-generating-anchor-boxes-for-yolo-like-network-for-vehicle-detection-using-kitti-dataset-b2fe033e5807).
+
+### 2.4 Final YOLO Algorithm
+
+This section summarizes the content of the YOLO notebook in the exercises repository:
+
+[CVND_Exercises](https://github.com/mxagar/CVND_Exercises) `/2_2_YOLO`
+
+Note that YOLO uses [Darknet](https://pjreddie.com/darknet/), a C implementation for deep neural networks. The YOLO nerual network architecture is described in `cfg/` and the weights need to be downloaded separately; they are located in `weights/` but not committed, due to their large size (almost 250 MB).
+
+The weights were trained with the [Common Objects in Context (COCO) dataset](https://cocodataset.org/), which contains more than 200k labelled images with 80 object categories.
+
+There is a simplified Pytorch implementation of the model in `darknet.py`; simplified, because training is not implemented, just forward passes. Additionally, the script `utils.py` contains some helper functions for:
+
+- IoU computation
+- Non-maximum supression
+- Model forward pass to detect objects
+- Plotting boxes
+- etc.
+
+Test images are in `images/` and everything is controled from the notebook `YOLO.ipynb`.
+
+In the notebook, we can print how the YOLO v3 architecture is; some notes:
+
+- The input size is 416 x 416 x 3
+- The output size is 52 x 52 x 255
+	- Grid: 52 x 52
+	- Channels: 255; these contain the bounding box and class vectors
+- There are 100+ layers!
+	- Most of the layers are convolutions: 3x3, 1x1; number of filters vary: 32 - 1024 and pooling is applied every 2-3 convolutions.
+	- There are shortcut and routing layers too.
+
+For more information, check this blog post: [How to implement a YOLO (v3) object detector from scratch in PyTorch](https://blog.paperspace.com/how-to-implement-a-yolo-object-detector-in-pytorch/).
+
+Also, look at the YOLO v1 & v3 papers in the `litearture/` folder.
+
+
