@@ -325,4 +325,141 @@ For more information, check this blog post: [How to implement a YOLO (v3) object
 
 Also, look at the YOLO v1 & v3 papers in the `litearture/` folder.
 
+## 3. Recursive Neural Networks (RNN)
+
+While CNNs can retrieve **spatial information**, RNNs can incorporate **memory** into our networks. They are used in sequences, such as natural language.
+
+However, they can be used any time we have a sequence with images:
+
+- Video images: classification and captioning
+- Gesture recognition
+- Object tracking
+
+The project of this module consists in creating an image captioning model; thus, we need both a CNN and a RNN.
+
+Example: [Sketch RNN](https://magenta.tensorflow.org/assets/sketch_rnn_demo/index.html).
+
+See the review on video classification in the literature folder: `Sun_VideoClassification_2017.pdf`.
+
+### 3.1 Introduction and History
+
+Many information processing we do incorporates sequential relationships. Thus, it makes sense to add recurrence or temporal awareness to neural networks.
+
+These are the most important attempts to do so:
+
+- Time Delay Neural Networks (TDNN), 1989. They were limited to the chosen time window. See [Time delay neural network, Wikipedia](https://en.wikipedia.org/wiki/Time_delay_neural_network)
+- Simple RNNs or Elman Networks, 1990. The major problem the had is the **vanishing gradient** problem: the gradients become 0 **geometrically** as we backpropagate the error back in time.
+- Long Short-Term Memory Networks (LSTM), 1995. They emerged as a solution to the vanishing gradient problem.
+- Gated Recurret Units (GRU), 2014. They are similar to LSTMs, but with fewer parameters. They have both similar performances.
+
+![Time Delay Neural Network (TDNN)](./pics/tdnn.png)
+
+See the `literature/` folder for papers on them.
+
+### 3.2 Applications of RNNs
+
+- Speech recognition: Alexa, Siri, etc.
+- Time series predictions
+	- Traffic patterns (Waze)
+	- Movie selection (Netflix)
+	- Stock movement and market condition
+- Natural Language Processing (NLP)
+	- Machine translation
+	- Question answering chatbots
+- Gesture recognition from video; many companies behind that:
+	- Qualcomm
+	- EyeSight / Cipia
+	- Intel
+
+In **gesture recognition**, in particular, it is common to have CNNs in the first layers to extract features, and then RNNs, when memory is needed.
+
+### 3.3 Neural Networks Refresher: Feedforward, Backpropagation
+
+This section is a refresher of neural networks in general; basically, feedforward and backpropagation are explained.
+
+I add very simple notes. Refer to either of these materials for a deeper understanding:
+
+- Previous module of the Nanodegree or hand-written notes.
+- [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity); in particular, the project of the first module implements a neural network in numpy.
+- [machine_learning_coursera](https://github.com/mxagar/machine_learning_coursera); in particular, the module on neural networks implements feedforward and backpropagation.
+
+Neural networks are non-linear function approximators composed by matrix multiplications internally. The goal is to find the optimal set of matrix weights.
+
+Primary applications: Classification and Regression.
+
+Usually, we talk about static mappings between input and output in a NN, i.e., no memory is considered. In RNNs, memory is added.
+
+We have two important phases: Training and Evaluation.
+
+In the training phase, we feedforward the input to obtain an output; we compare the output with the expected one, calculate the error and try to update the weights in the direction in which the error would decrease. To that end we need feedforward (output computation from inputs) and backpropagation (propagation of the error related to each weight).
+
+During feedforward, we do two major things step-wise layer after layer:
+
+- Weight matrix multiplication: the inputs are multiplied by the weight matrix of the layer they enter into.
+- Activation function: the layer outputs are mapped to a region; the goal of the activation function is to allow the networks to output non-linear outputs.
+
+Example of weiht matrix multiplication and activation:
+
+```
+Layer l
+	h = [h1 h2 h3] = [x1 x2 x3 x4] * [W]
+	[W] = [W(l)_ij]
+		n inputs (i=1:n) x m outputs (j=1:m)
+		n = 4, m = 3
+	a = [a1 a2 a3] = sigmoid(h)
+```
+
+In order to compute the error, we compare the output to an expected value using a difference summarizing function:
+
+- Mean squared error, for regression.
+- Cross-entropy loss, for classification.
+
+During backpropagation, we update the weights in the direction in which the error decreases:
+
+```
+W_new <- W_old + learning_rate * (- dE/dW)
+dE/dW = [dE/dW_ij]: Gradient of the Error with respect to each of the weights
+```
+
+In order to compute the error gradient, we need to propagate backwards the error using the chain rule. That is backpropagation.
+
+During training, we risk of fitting the weights too tighty to the data: that is overfitting. Methods to avoid that:
+
+- Regularization
+- Validation set
+- Dropout
+
+### 3.4 Simple Recurrent Neural Networks (RNNs)
+
+Recurrent Neural Networks are like usual MLPs, but with two important changes:
+
+- We input sequences in the training phase, and
+- We keep the ouputs of each neuron as memory states that are added to the same neurons in the next sequence pass
+
+![Simple RNNs](./pics/Simple_RNN.png)
+
+In oder words, the **memory** is the output of the hidden layer neurons; it will be an additional input to the network during the next training step. This additonal input has its own weights, too!
+
+The Elman Network is the Simple RNN defined as described above; see the `literature/` folder for the paper.
+
+The fact that we add the previous output as input makes us dependable of the previous elements exposed to the network.
+
+We often talk about the folded and teh unfolded RNN model; that refers to visualizing all the temporal state inputs over the time.
+
+![Folded RNN model](./pics/RNN_folded.png)
+
+![Unfolded RNN model](./pics/RNN_unfolded.png)
+
+Given an input vector `x_t`, we have two outputs:
+
+- The memory state `s_t = sigmoid(x_t * W_x + s_(t-1) * W_s)`; it is saved for the next input.
+- The output of the layer: `y_t = sigmoid(s_t * W_y)`; it is passed to the next neuron.
+
+Note that the layer ouput `y_t` is computed from the memory state vector `s_t`, which contains the current input `x_t` and all previous inputs through `s_(t-1)`!
+
+Layers are independent from each other, so we can stack them as we please; also, as with any other neural network, we can map from any number of input size to any number of output size.
+
+### 3.5 Backpropagation in Simple RNNs
+
+
 

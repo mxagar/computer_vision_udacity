@@ -20,3 +20,15 @@ RedmonFarhadi_YOLO_2015.pdf
 
 RedmonFarhadi_YOLO_v3_2018.pdf
 	You Only Look Once: YOLO, v3
+
+Sun_VideoClassification_2017.pdf
+	Review on video classification methods.
+
+Elman_RNN_1990.pdf
+	First RNN.
+
+HochreiterSchmidhuber_LSTM_1997.pdf
+	First LSTM.
+
+Cho_GRU_2014.pdf
+	First GRU.
