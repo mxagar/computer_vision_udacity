@@ -429,6 +429,8 @@ During training, we risk of fitting the weights too tighty to the data: that is 
 - Validation set
 - Dropout
 
+Very interesting link to a lesson from Fei-Fei Li on [Learning in Neaural Networks](https://cs231n.github.io/neural-networks-3/).
+
 ### 3.4 Simple Recurrent Neural Networks (RNNs)
 
 Recurrent Neural Networks are like usual MLPs, but with two important changes:
@@ -459,7 +461,164 @@ Note that the layer ouput `y_t` is computed from the memory state vector `s_t`, 
 
 Layers are independent from each other, so we can stack them as we please; also, as with any other neural network, we can map from any number of input size to any number of output size.
 
+Note that as in feedforward neural networks, training can be carried out in several forms:
+
+- Batch gradient descend: the complete dataset (one epoch) is used to compute the weight update
+- Stochastic gradient descend: each sample is used to compute small weight updates
+- Mini batch stochastic gradient descend: mini batches (e.g., 20 smaples) are used to compute a weight update vector for the group; this reduces noise.
+
 ### 3.5 Backpropagation in Simple RNNs
+
+With RNNs, we perform backpropagation as with feedforward neural networks, however, we accumulate the gradients through time, i.e, we carry out **Backpropagation Through Time**.
+
+![Backpropagation Through Time](./pics/bptt.png)
+
+Recall we have these weight matrices per hidden layer: 
+
+- `W_x`: weight matrix connecting the inputs to the state layer.
+- `W_y`: weight matrix connecting the state to the output.
+- `W_s`: weight matrix connecting the state from the previous timestep to the state in the following timestep.
+
+If we unfold the model and compute the gradients propagating the error in the network, we see that the error derivatives with respect to `W_x` and `W_s` are the summation of the current derivative and all the previous ones.
+
+However, not all previous derivates are considered due to the **vanishing gradient** problem; in practice, the 8-10 previous steps are used. Similarly, to avoid the **exploding gradient** issue, **gradient clipping** is applied: if the gradient exceeds a threshold, it is normalized.
+
+### 3.6 From RNN cells to LSTM cells
+
+The Long Short-Term Memory (LSTM) unit appeared (1997) to solve the issue of the vanishing gradient. Basically, all simple RNN cells can be replaced by LSTM cells and **almost all recurrent neural networks are being moved to use LSTM of cells**. These are the most important properties of LSTM-based RNNs:
+
+- The state preserving unit is replaced by the LSTM unit, which has more operations than only the weight matrix multiplication adn summation of input and previous state.
+- The cell is fully differentiable: we can apply backpropagation on it to optimize its weights. We have 4 operations inside:
+	- Sigmoid
+	- Hyperbolic tangent
+	- Multiplication
+	- Addition
+- The LSTM cells are able to keep for longer periods of time past events: +1000 steps backwards can be considered, not only 8-10.
+- LSTM cells can decide
+	- which information to remove
+	- which to store and
+	- when to use it
+	- when to pass the information to the next stage
+- That selective information gating is achieved through the initial sigmoid activations, which let information flow if the outcome is close to 1 only; the cell learns the weights to adjust those gates.
+
+![Single RNN cell computations](./pics/single_RNN_cell_computations.png)
+
+![LSTM cell computations](./pics/LSTM_cell_computations.png)
+
+## 4. Long Short-Term Memory Networks (LSTMs)
+
+Very interesting links:
+
+- [Understanding LSTM Networks, by Chris Olah](http://colah.github.io/posts/2015-08-Understanding-LSTMs/)
+- [Exploring LSTMs, by Edwin Chen](http://blog.echen.me/2017/05/30/exploring-lstms/)
+- [Karpathy's Lecture: Recurrent Neural Networks, Image Captioning, LSTM](https://www.youtube.com/watch?v=iX5V1WpxxkY)
+
+### 4.1 Usefulness of a RNN
+
+Sometimes recurrency or past information is relevant to perform better inferences. For instance, if we have a video and a wolf appears in the scene, the neural network might infer from a single image that we see a dog; however, if the neural network has the information that previously a bear and a fox were detected, it's more likely for it to infer it's a wolf, not a dog, because the past animals were wild animals, not pets.
+
+![RNN: motivation](./pics/RNN_motivation.png)
+
+Thus, recurrent neural networks can be very useful. However, simple RNNs can have a very short memory: only 8-10 steps backwards can be remembered, because of the vanishing gradient problem. In contrast, LSTMs can achive short and long term memory.
+
+![LSTM basic template](./pics/LSTM_basic_idea.png)
+
+### 4.2 Practical Intuition of What LSTMs Do
+
+Simple RNN cells compute a single memory state which is passed to the next iteration; thus, in order to compute a state, they use the previous state. The current state is also used to compute the cell output by using also the input signal.
+
+Therefore, a simple RNN unit has:
+
+- Two inputs: signal/event + previous memory state
+- Two outputs: transformed signal + current/updated memory state
+
+LSTM cells seggregate the memory input/output into two types: short-term memory & long-term memory. Therefore, we have:
+
+- Three inputs: signal/event + previous short-term memory + previous long-term memory 
+- Two outputs: transformed signal + current/updated short-term memory + current/updated long-term memory
+
+However, note that the updated short-term memory is the signal output, too!
+
+![LSTM input and output](./pics/LSTM_memory.png)
+
+All 3 inputs are used in the cell in **4 different and interconnected gates** to generate the 3 ouputs. In the wolf example, the different inputs / outputs would be the following:
+
+- Previous memories (input):
+	- Long-term: show about nature, many forest animals
+	- Short-term: squirrels, trees
+- Input signal / event: wolf / dog
+- Current memories (output):
+	- Long-term: show about nature, many forest animals
+	- Short-term: wolf, squirrels
+- Output signal: wolf more probable than dog
+
+Again, note that the output signal is the updated short-term memory, too.
+
+![LSTM memory intuition](./pics/LSTM_memory_intuition.png)
+
+The **4 interconnected gates** inside the LSTM cell are:
+
+- Forget gate: useless parts of previous long-term memory are forgotten, creating a lighter long-term memory
+- Learn gate: previous short-term memory and current event are learned
+- Remember gate: we mix the light long-term memory with forgotten parts and the learned information to form the new long-term memory
+- Use gate: similarly, we mix the light long-term memory with forgotten parts and the learned information to form the new short-term memory
+
+![LSTM gates](./pics/LSTM_gates.png)
+
+### 4.3 Architecture of an LSTM
+
+These are manily my notes after reading the great blog post by Christopher Olah:
+
+[Understanding LSTM Networks](http://colah.github.io/posts/2015-08-Understanding-LSTMs/)
+
+**The images I use here come also from his blog post.**
+
+The cells of a simple RNN are very simple: signal input is combined with the previous memory to yield the current output, which is the new memory.
+
+![Simple RNN cells](./pics/colah_LSTM3-SimpleRNN.png)
+
+LSTM networks follow the same architectural structure, but the cells have two memory outputs and more operations occur inside of them.
+
+![LSTM cells](./pics/colah_LSTM3-chain.png)
+
+The basic operations that occur in them are:
+
+- There are 4 neural network layers with learned weights and activation functions (`sigmoid` and `tanh`).
+- Additionally, simple vector point-wise operations occur: `*`.
+- Vectors are transferred, copied and concatenated inside the cell.
+
+![LSTM cells](./pics/colah_LSTM2-notation.png)
+
+Note that there are two memory states that enter and go out from the cell:
+
+- `C_(t-1)`, `C_t`: long-term memory or cell state.
+- `h_(t-1)`, `h_t`: short-term memory or cell state; `h_t` is as well the output to the next LSTM cell layer!
+
+Also, note that the output from the `sigmoid` functions is multiplied point-wise to the memory `C` vector: since the sigmoid outputs values between `[0,1]` and the weights before applying it are learned, the cell learns which vector elements from the memory to keep (sigmoid result `-> 1`) and which to remove (sigmoid result `-> 0`). So, sigmoids work as filters!
+
+Therefore, internally, the vectors are processed so that we keep the long-term relevant information, forgetting irrelevant pieces of data and we output a signal based on the current event and recent outputs. The key idea is that the weights are learned so that the `sigmoid` and `tanh` preserve or cancel given vector elements.
+
+In the following image, the cell computes what to **forget** and **learn**:
+
+![LSTM cells](./pics/colah_LSTM3-focus-f.png)
+
+![LSTM cells](./pics/colah_LSTM3-focus-i.png)
+
+... and then, this is applied to the old long-term memory state:
+
+![LSTM cells](./pics/colah_LSTM3-focus-C.png)
+
+Finally, it is decided what to output given the event, the recent short-term memory and the newly updated long-term memory:
+
+![LSTM cells](./pics/colah_LSTM3-focus-o.png)
+
+That output is the new short-term memory.
+
+There are some variants of the LSTM, such as the Gated Recurrent Unit (GRU, 2014), which simplifies the cell/unit, while keeping the performance.
+
+![LSTM variants: GRU](./pics/colah_LSTM3-var-GRU.png)
+
+
 
 
 
