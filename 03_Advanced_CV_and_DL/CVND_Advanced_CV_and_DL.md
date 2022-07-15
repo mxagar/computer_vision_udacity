@@ -1,4 +1,4 @@
-# Udacity Computer Vision Nanodegree: Introduction
+# Udacity Computer Vision Nanodegree: Advanced CV and DL
 
 These are my personal notes taken while following the [Udacity Computer Vision Nanodegree](https://www.udacity.com/course/computer-vision-nanodegree--nd891).
 
@@ -16,9 +16,11 @@ This folder/file refers to the **third** module: **Advanced Computer Vision and 
 Note that:
 
 - I made many hand-written nortes, which I will scan and push to this repostory.
-- I forked the Udacity repositors for the exercises; all the material and  notebooks are there:
+- I forked the Udacity repositors for the exercises; all the material and notebooks are there:
 	- [CVND_Exercises](https://github.com/mxagar/CVND_Exercises)
 	- [DL_PyTorch](https://github.com/mxagar/DL_PyTorch)
+- The sections related to the Recurrent Neural Networks (RNNs) have a large overlap with the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repostory with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity). There is also a forked DL exercise repo, too:
+	- [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch)
 
 Mikel Sagardia, 2022.
 No guarantees.
@@ -46,14 +48,15 @@ pip install mkl-service
 
 ## Overview of Contents
 
-1. Advanced CNN Architectures
-2. YOLO: You Only Look Once
-3. Recursive Neural Networks (RNN)
-4. Long Short-Term Memory Networks (LSTM)
-5. Hyperparameters
-6. Attention Mechanisms
-7. Image Captioning
-8. Project: Image Captioning
+1. [Advanced CNN Architectures]()
+2. [YOLO: You Only Look Once]()
+3. [Recursive Neural Networks (RNN)]()
+4. [Long Short-Term Memory Networks (LSTM)]()
+5. [Implementation of RNNs and LSTMs]()
+6. [Hyperparameters]()
+7. [Attention Mechanisms]()
+8. [Image Captioning]()
+9. [Project: Image Captioning]()
 
 ## 1. Advanced CNN Architectures
 
@@ -532,10 +535,10 @@ Therefore, a simple RNN unit has:
 - Two inputs: signal/event + previous memory state
 - Two outputs: transformed signal + current/updated memory state
 
-LSTM cells seggregate the memory input/output into two types: short-term memory & long-term memory. Therefore, we have:
+LSTM cells segregate the memory input/output into two types: short-term memory & long-term memory. Therefore, we have:
 
 - Three inputs: signal/event + previous short-term memory + previous long-term memory 
-- Two outputs: transformed signal + current/updated short-term memory + current/updated long-term memory
+- Three outputs: transformed signal + current/updated short-term memory + current/updated long-term memory
 
 However, note that the updated short-term memory is the signal output, too!
 
@@ -618,7 +621,418 @@ There are some variants of the LSTM, such as the Gated Recurrent Unit (GRU, 2014
 
 ![LSTM variants: GRU](./pics/colah_LSTM3-var-GRU.png)
 
+### 4.4 Definition of an LSTM Cell in Pytorch
+
+[CVND_Exercises](https://github.com/mxagar/CVND_Exercises) `/2_4_LSTMs`
+
+In this notebook, the inputs/outputs of an LSTM cell in Pytorch are shown. Note that the sizes and dimensions differ a bit from what's expected from the theory explained so far, because all hidden stuff is abstracted for the user and we can have several internal layers.
+
+Example used: input vectors of 4 items map to output vectors of 3 items with one cell. We can pass sequences of vectors, i.e., several vectors arranged in a tensor. One vector can be a word after being transformed into an embedding.
+
+Notes: 
+
+- `nn.LSTM` is more like a layer than a neuron; its equivalent would be `nn.Linear`. Additionally, `nn.LSTM` can have several layers inside.
+- We can pass one vector after the another in a loop. However, it's more efficient to pass several vectors together in a tensor. Note this is not a batch - a batch would be another grouping on top of that. It is rather a sequence. If a vector is a word, it would be a sentence!
+
+```python
+import torch
+import torch.nn as nn
+from torch.autograd import Variable
+
+# input_dim: number of inputs, length of the input vector, number of units in the input vector
+# hidden_dim: number of ouputs, length of the output vector, number of units in the output vector
+# n_layers: number of hidden layers used; 1 == the LSTM cell has 1 hidden state
+# Note that we pass a SEQUENCE of vectors of dimension input_dim;
+# The length of the sequence appears later
+input_dim = 4 # example: dimensions of the input word embedding
+hidden_dim = 3 # example: number output class categories
+n_layers = 1 # usually 1 (default) to 3
+lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=n_layers)
+
+# Make a sequence of 5 input vectors of 4 random values each
+# Ie., each vector is of dimension 4 (=input_dim)
+inputs_list = [torch.randn(1, input_dim) for _ in range(5)]
+
+# Turn input vectors into a tensor with 5 rows of data.
+# This is our SEQUENCE.
+# Note that the LENGTH of the SEQUENCE is ARBITRARY!
+# Add the extra 2nd dimension (1) for batch_size.
+# We can also pass each of the 5 vectors one after the other,
+# but packing them together is more efficient.
+# This seems to be a batch -- but a batch is an additional grouping
+# on top of it. IT IS A SEQUENCE.
+batch_size = 1
+inputs = torch.cat(inputs_list).view(len(inputs_list), batch_size, -1) 
+
+# Size: (number of sequences, batch size, input_dim)
+print('inputs size: \n', inputs.size()) # [5, 1, 4]
+
+# Initialize the hidden states: short- and long-term memories
+# We have so many as layers we have defined.
+# h0: (n_layers, batch_size, hidden_dim)
+# c0: (n_layers, batch_size, hidden_dim)
+h0 = torch.randn(n_layers, batch_size, hidden_dim)
+c0 = torch.randn(n_layers, batch_size, hidden_dim)
+
+# Wrap everything in torch Variable
+inputs = Variable(inputs)
+h0 = Variable(h0)
+c0 = Variable(c0)
+# get the outputs and hidden state
+#output, hidden = lstm(inputs, (h0, c0))
+output, (h1, c1) = lstm(inputs, (h0, c0))
+
+# output size: [5, 1, 3]: one output of 3 elements for each of the 5 sequences of 4 elements
+# hidden size, (h1, c1): we get the last hidden state; INPUT for the next LSTM
+# h1: [1, 1, 3] 
+# c1: [1, 1, 3]
+
+```
+
+### 4.5 The Gates
+
+As mentioned, LSTMs have 4 gates that work together:
+
+- The learn gate
+- The forget gate
+- The remember gate
+- The use gate or output gate
+
+Those gates emerge from the LSTM cell the flow diagram; if the vector flow is disected, we see that the learn-forget-remember-use effects appear. Most of the intuitive ideas have been introduced in Sections 4.2 and 4.3; here each gate effect is analyzed.
+
+#### The Learn Gate
+
+The Short-Term Memry STM and the Event are combined (technically, concatenated). Then, some parts of the combined vector are ignored by applying a sigmoided vector. That's how we learn.
+
+![LSTM Learn Gate](./pics/lstm_learn_gate.png)
+
+#### The Forget Gate
+
+We take the Long Term Memory LTM and cancel some of its parts. This cancelling is done as in the learn gate: we multiply the LTM vector by a sigmoided vector.
+
+![LSTM Forget Gate](./pics/lstm_forget_gate.png)
+
+#### The Remember Gate
+
+The outputs from the learn gate and the forget gate are added.
+
+![LSTM Remember Gate](./pics/lstm_remember_gate.png)
+
+#### The Use Gate or Output Gate
+
+Several signals are combined:
+
+- The `tanh` of the forget gate
+- The `sigmoid` of the concatenated STM and E
+
+![LSTM Use Gate](./pics/lstm_use_output_gate.png)
+
+#### Complete Architecture
+
+The complete architecture is not that complicated after all; however, several operations are carried out to achieve the goals.
+
+Important notes:
+
+- The complete LSTM cell is differentiable! This is fundamental, since we can compute gradients of the network and apply some optimization algorithm on top of it.
+- An LSTM cell has several weight matrices; each of the can be understood as a layer, since we pass vectors to the cell.
+- The architecture might seem quite arbitrary, and in some sense it is: it was probably defined so because it works!
+
+![LSTM Complete Architecture](./pics/lstm_complete_architecture.png)
+
+#### Gated Recurrent Units (GRUs)
+
+An alternative to LSTMs are the Gated Recurrent Units (GRUs), which appeared later. They simplify the recurrent cell while achieving similar performances.
+
+[Gated Recurrect Units (GRU)](http://www.cs.toronto.edu/~guerzhoy/321/lec/W09/rnn_gated.pdf)
+
+![Gated Recurrent Units, GRU](./pics/gru.png)
+
+### 4.6 Example: Part of Speech Tagging Notebook
+
+[CVND_Exercises](https://github.com/mxagar/CVND_Exercises) `/ 2_4_LSTMs`
+
+This notebook implements an LSTM network which predicts the parts-of-speech (POS) of a sentence. The type of part-of-speech is the category of the word morphology, i.e., we tag each word to be a noun, adjective, verb, etc.
+
+Applications: Basically, predict the category (POS) of a likely work in NLP to
+
+- Disambiguate homophone words.
+- Correct mistakes.
+- Improve the pronunciation in speech synthesis.
+- ...
+
+The notebook is very interesting, since it shows how to map a sequence (words) to a sequence (of classes). The length of the sequence is arbitrary; in other words: we can input sentences of arbitrary length.
+
+However, note that the example is very simple: we use a vocabulary of less than 15 words and 3 possible parts-of-speech (noun, verb, determinant).
+
+One important aspect is that we need an **Embedding** the words. Given a vocabulary, the embedding achieves a compressed vector representation of the discrete words. For instance, we might have a vocabulary of discrete 10,000 words represented with a one-hot vector of dimension 10,000; this sparse vector can be compressed to an embedding of dimension 10, such that each word is represented by 10 floating point numbers. Embeddings have several advantages:
+
+- Fixed vector size for all words
+- Continuous floating point elements
+- Compressed representation
+
+This is the summary of steps inside the network:
+
+- At the beginning, a vocabulary is built: each word gets an index and vice versa.
+- We take a sentence: a sequence of arbitrary length composed of words.
+- The words are converted to indices.
+- The sequence of indices is converted to a sequence of vectors using the embedding; we have a tensor of this size: `[sequence_length, embedding_vector_size]`.
+- The sequence is passed to the LSTM. We need to specify the batch size too, e.g., 1; thus, the tensor is reshaped to `[sequence_length, batch_size=1, embedding_vector_size]`.
+- The output is of size `[sequence_length, batch_size=1, hidden_dimension]`, which is mapped to `[sequence_length, output_classes]` with a linear layer.
+
+Thus, for each word in the input sequence we have `output_classes` probabilities, each corresponding with one possible part-of-speech (POS).
+
+In the following, the summary of the code in the notebook:
+
+```python
+
+# import resources
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+### -- Training Data: Vocabulary and POS
+
+# training sentences and their corresponding word-tags
+training_data = [
+    ("The cat ate the cheese".lower().split(), ["DET", "NN", "V", "DET", "NN"]),
+    ("She read that book".lower().split(), ["NN", "V", "DET", "NN"]),
+    ("The dog loves art".lower().split(), ["DET", "NN", "V", "NN"]),
+    ("The elephant answers the phone".lower().split(), ["DET", "NN", "V", "DET", "NN"])
+]
+
+# create a dictionary that maps words to indices
+word2idx = {}
+for sent, tags in training_data:
+    for word in sent:
+        if word not in word2idx:
+            word2idx[word] = len(word2idx)
+
+# create a dictionary that maps tags to indices
+tag2idx = {"DET": 0, "NN": 1, "V": 2}
+
+# print out the created dictionary
+print(word2idx) # {'the': 0, 'cat': 1, 'ate': 2, 'cheese': 3, 'she': 4, 'read': 5, 'that': 6, 'book': 7, 'dog': 8, 'loves': 9, 'art': 10, 'elephant': 11, 'answers': 12, 'phone': 13}
+
+# a helper function for converting a sequence of words to a Tensor of numerical values
+# will be used later in training
+def prepare_sequence(seq, to_idx):
+    '''This function takes in a sequence of words and returns a 
+    corresponding Tensor of numerical values (indices for each word).'''
+    idxs = [to_idx[w] for w in seq]
+    idxs = np.array(idxs)
+    return torch.from_numpy(idxs)
+
+# check out what prepare_sequence does for one of our training sentences:
+example_input = prepare_sequence("The dog answers the phone".lower().split(), word2idx)
+print(example_input) # tensor([ 0,  8, 12,  0, 13])
+
+### -- Creating the Model
+
+class LSTMTagger(nn.Module):
+
+    def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
+        ''' Initialize the layers of this model.'''
+        super(LSTMTagger, self).__init__()
+        
+        self.hidden_dim = hidden_dim
+
+        # embedding layer that turns words into a vector of a specified size
+        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
+
+        # the LSTM takes embedded word vectors (of a specified size) as inputs 
+        # and outputs hidden states of size hidden_dim
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+
+        # the linear layer that maps the hidden state output dimension 
+        # to the number of tags we want as output, tagset_size (in this case this is 3 tags)
+        self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
+        
+        # initialize the hidden state (see code below)
+        self.hidden = self.init_hidden()
+
+        
+    def init_hidden(self):
+        ''' At the start of training, we need to initialize a hidden state;
+           there will be none because the hidden state is formed based on perviously seen data.
+           So, this function defines a hidden state with all zeroes and of a specified size.'''
+        # The axes dimensions are (n_layers, batch_size, hidden_dim)
+        return (torch.zeros(1, 1, self.hidden_dim),
+                torch.zeros(1, 1, self.hidden_dim))
+
+    def forward(self, sentence):
+        ''' Define the feedforward behavior of the model.'''
+        # create embedded word vectors for each word in a sentence
+        embeds = self.word_embeddings(sentence)
+        
+        # get the output and hidden state by passing the lstm over our word embeddings
+        # the lstm takes in our embeddings and hiddent state
+        lstm_out, self.hidden = self.lstm(
+            embeds.view(len(sentence), 1, -1), self.hidden)
+        
+        # get the scores for the most likely tag for a word
+        tag_outputs = self.hidden2tag(lstm_out.view(len(sentence), -1))
+        tag_scores = F.log_softmax(tag_outputs, dim=1)
+        
+        return tag_scores
+
+# the embedding dimension defines the size of our word vectors
+# for our simple vocabulary and training set, we will keep these small
+EMBEDDING_DIM = 6
+HIDDEN_DIM = 6
+
+# instantiate our model
+model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word2idx), len(tag2idx))
+
+# define our loss and optimizer
+loss_function = nn.NLLLoss()
+optimizer = optim.SGD(model.parameters(), lr=0.1)
+
+### --  Test Pass
+
+test_sentence = "The cheese loves the elephant".lower().split()
+
+# see what the scores are before training
+# element [i,j] of the output is the *score* for tag j for word i.
+# to check the initial accuracy of our model, we don't need to train, so we use model.eval()
+inputs = prepare_sequence(test_sentence, word2idx)
+inputs = inputs
+tag_scores = model(inputs)
+print(tag_scores)
+
+# tag_scores outputs a vector of tag scores for each word in an inpit sentence
+# to get the most likely tag index, we grab the index with the maximum score!
+# recall that these numbers correspond to tag2idx = {"DET": 0, "NN": 1, "V": 2}
+_, predicted_tags = torch.max(tag_scores, 1)
+print('\n')
+print('Predicted tags: \n',predicted_tags)
+
+### -- Train the Model
+
+# normally these epochs take a lot longer 
+# but with our toy data (only 3 sentences), we can do many epochs in a short time
+n_epochs = 300
+
+for epoch in range(n_epochs):
+    
+    epoch_loss = 0.0
+    
+    # get all sentences and corresponding tags in the training data
+    for sentence, tags in training_data:
+        
+        # zero the gradients
+        model.zero_grad()
+
+        # zero the hidden state of the LSTM, this detaches it from its history
+        model.hidden = model.init_hidden()
+
+        # prepare the inputs for processing by out network, 
+        # turn all sentences and targets into Tensors of numerical indices
+        sentence_in = prepare_sequence(sentence, word2idx)
+        targets = prepare_sequence(tags, tag2idx)
+
+        # forward pass to get tag scores
+        tag_scores = model(sentence_in)
+
+        # compute the loss, and gradients 
+        loss = loss_function(tag_scores, targets)
+        epoch_loss += loss.item()
+        loss.backward()
+        
+        # update the model parameters with optimizer.step()
+        optimizer.step()
+        
+    # print out avg loss per 20 epochs
+    if(epoch%20 == 19):
+        print("Epoch: %d, loss: %1.5f" % (epoch+1, epoch_loss/len(training_data)))
+
+### -- Inference
+
+test_sentence = "The cheese loves the elephant".lower().split()
+
+# see what the scores are after training
+inputs = prepare_sequence(test_sentence, word2idx)
+inputs = inputs
+tag_scores = model(inputs)
+print(tag_scores)
+
+# print the most likely tag index, by grabbing the index with the maximum score!
+# recall that these numbers correspond to tag2idx = {"DET": 0, "NN": 1, "V": 2}
+_, predicted_tags = torch.max(tag_scores, 1)
+print('\n')
+print('Predicted tags: \n',predicted_tags)
+
+```
+
+### 4.7 Example: Character-Level LSTM
+
+This notebook is based on Andrej Karpathy's [post on RNNs](http://karpathy.github.io/2015/05/21/rnn-effectiveness/) and [implementation in Torch](https://github.com/karpathy/char-rnn).
+
+Since it is better covered in a module of the Deep Learning Nanodegree, I added that module here, which is the next one: [5. Implementation of RNNs and LSTMs](#5.-Implementation-of-RNNs-and-LSTMs).
+
+Basically, a network is defined to be trained with sequences of characters such that the network is able to predict the next most likely character given the character sequence fed so far. In consequence, the network is able to generate a text character by character.
+
+**IMPORTANT: I have moved this example to the next section. The next section is originally from the Deep Learning Nanodegree, which is explained in more detail and has more examples on RNNs.**
+
+## 5. Implementation of RNNs and LSTMs
+
+This setion is originally from the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repostory with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity).
+
+The section consists basically of two examples:
+
+1. Implementation of a Simple RNN: A time series
+2. Implementation of an LSTM network: 
+
+The examples are implemented in the DL nanodegree repository, not the CV repo: [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch) `/ recurrent-neural-networks`.
+
+### 5.1 Example 1: RNN
 
 
 
+### 5.2 Example 2: Character-Level LSTM
 
+This notebook is based on Andrej Karpathy's [post on RNNs](http://karpathy.github.io/2015/05/21/rnn-effectiveness/) and [implementation in Torch](https://github.com/karpathy/char-rnn).
+
+Since it is better covered in a module of the Deep Learning Nanodegree, I added that module here, which is the next one: 
+
+Basically, a network is defined to be trained with sequences of characters such that the network is able to predict the next most likely character given the character sequence fed so far. In consequence, the network is able to generate a text character by character.
+
+I have an example of this in Tensorflow, too; have a look at:
+
+- [data_science_python_tools](https://github.com/mxagar/data_science_python_tools/tree/main/19_NeuralNetworks_Keras/19_08_Keras_NLP)
+- `~/git_repositories/data_science_python_tools/19_NeuralNetworks_Keras/19_08_Keras_NLP`
+- `keras_tensorflow_guide.txt`
+
+The network in the notebook is trained with the text from Anna Karenina.
+
+Here is a figure of the architectural idea, drawn by Karpathy:
+
+![Architecture idea of the network for character sequences, from Karpathy's blog post](./pics/karpathy_charseq.jpeg)
+
+The notebook is broken down to several parts, each covering important fundamentals typical from RNNs and text processing (for NLP):
+
+1. Encoding text
+2. Batch genration
+3. ...
+
+#### Encoding Text
+
+#### Batch Generation
+
+One very important thing is creating **batches**.
+
+
+## 6. Hyperparameters
+
+
+## 7. Attention Mechanisms
+
+
+## 8. Image Captioning
+
+
+## 9. Project: Image Captioning
