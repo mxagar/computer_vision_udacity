@@ -1729,11 +1729,59 @@ print(sample(loaded, 2000, top_k=5, prime="And Levin said"))
 
 This section is instructed ba Jay Alammar: [Jay Alammar's Blog](http://jalammar.github.io/).
 
+A hyperparameter is a parameter that needs to be set before starting to learn the other model parameters; unfortunately, there is no standard solution that works in all cases. We can break down the hyperparameters into two categories:
 
+- Optimizer hyperparameters: learning rate, mini-batch size, epochs.
+- Model hyperparmaters: number of layers, hidden units, model-specific parameters related to the architecture.
 
+### 6.1 Learning Rate
+
+The learning rate is probably the most important hyperparameter.
+
+If the inputs were normalized, a good starting point is `0.01`. Then, we move upwards downwards with `x3, /3` or `x10, /10`:
+
+`[0.1, 0.01, 0.001, 0.0001, 0.00001]`
+
+`[0.3, 0.1, 0.03, 0.01, 0.003, 0.001, ...]`
+
+Which one should we use?
+
+- Too small values make the loss decrease very slowly. Thus, increase the learning rate.
+- Too large values make the loss increase or oscillate. Thus, decrease the learning rate.
+
+However, note that these are rules of thumb; we might fall into local minima, so the guidelines don't work always.
+
+Also, a very common technique which is often applied is the **learning rate decay**. The intuition is that as we approach our minimum the loss function might get smoother and we'd require smaller steps to avoid overshooting.
+
+For instance, we can:
+
+- Decrease the learning rate by half every 5 epochs
+- Multiply the learning rate by 0.1 every 5 epochs (exponential)
+
+Another approach consists in using an **adaptive learning rate**: we don't just decrease the learning rate, but increase it if necessary. Methods that accomplish that:
+
+- AdaGrad: it maintains a per-parameter learning rate that improves performance on problems with sparse gradients.
+- Adam: builds on the concepts of AdaGrad; the algorithm calculates an exponential moving average of the gradient and the squared gradient, and the `beta` parameters control the decay rates of these moving averages. It is very effective. See [Code Adam Optimization Algorithm From Scratch](https://machinelearningmastery.com/adam-optimization-from-scratch/).
+
+See `literature/` for the paper on Adam.
+
+### 6.2 Mini-Batch Size
+
+The **mini-batch size** is also a hyperparameter.
+
+There are three major approaches when it comes to select the number of data-points used to compute the gradients and updating the weights:
+
+1. Stochastic gradient descend (online learning): we feed data-points one by one and compute the gradients for each data-point, and update the weights.
+2. Batch gradient descend: we pass the entire dataset and compute the gradients and weight update then.
+3. Mini-batch gradient descend: we pass a subset of data-points and compute the gradient and weight update for the mini-batch.
+
+There has been discussion as to which approach to use; it seems that using the mini-batch approach is the best; we can try the following `batch_size` values:
+
+`[1, 2, 4, ]`
 
 
 ## 7. Attention Mechanisms
+
 
 
 ## 8. Image Captioning

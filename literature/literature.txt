@@ -32,3 +32,9 @@ HochreiterSchmidhuber_LSTM_1997.pdf
 
 Cho_GRU_2014.pdf
 	First GRU.
+
+KingmaBa_Adam_2015.pdf
+	Adam optimisation algorithm.
+
+MishkinMatas_HyperparameterTuning_2016.pdf
+	The effects of different CNN parameters are analyzed.
