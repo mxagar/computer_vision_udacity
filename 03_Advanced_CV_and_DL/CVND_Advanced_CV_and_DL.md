@@ -645,9 +645,12 @@ from torch.autograd import Variable
 # Note that we pass a SEQUENCE of vectors of dimension input_dim;
 # The length of the sequence appears later
 input_dim = 4 # example: dimensions of the input word embedding
-hidden_dim = 3 # example: number output class categories
+hidden_dim = 3 # example: number output class categories, if we directly have the output after the LSTM
 n_layers = 1 # usually 1 (default) to 3
 lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=n_layers)
+# We can add dropout layers on the outputs of each LSTM layer if we add the argument dropout=drop_p
+# drop_p needs to be non-zero; dropout layer is added in all layers except the last one.
+# Default: 0
 
 # Make a sequence of 5 input vectors of 4 random values each
 # Ie., each vector is of dimension 4 (=input_dim)
@@ -661,6 +664,7 @@ inputs_list = [torch.randn(1, input_dim) for _ in range(5)]
 # but packing them together is more efficient.
 # This seems to be a batch -- but a batch is an additional grouping
 # on top of it. IT IS A SEQUENCE.
+# Batch size != sequence length.
 batch_size = 1
 inputs = torch.cat(inputs_list).view(len(inputs_list), batch_size, -1) 
 
@@ -675,6 +679,10 @@ h0 = torch.randn(n_layers, batch_size, hidden_dim)
 c0 = torch.randn(n_layers, batch_size, hidden_dim)
 
 # Wrap everything in torch Variable
+# Torch Variables are a wrapper around tensors; they represent a node in a graph,
+# and they have almost the same operations as tensors.
+# To obtain a tensro from a Variable: var.data
+# To obtain the gradient tensor of a Variable: var.grad.data
 inputs = Variable(inputs)
 h0 = Variable(h0)
 c0 = Variable(c0)
@@ -698,11 +706,11 @@ As mentioned, LSTMs have 4 gates that work together:
 - The remember gate
 - The use gate or output gate
 
-Those gates emerge from the LSTM cell the flow diagram; if the vector flow is disected, we see that the learn-forget-remember-use effects appear. Most of the intuitive ideas have been introduced in Sections 4.2 and 4.3; here each gate effect is analyzed.
+Those gates emerge from the LSTM cell the flow diagram; if the vector flow is dissected, we see that the learn-forget-remember-use effects appear. Most of the intuitive ideas have been introduced in Sections 4.2 and 4.3; here each gate effect is analyzed.
 
 #### The Learn Gate
 
-The Short-Term Memry STM and the Event are combined (technically, concatenated). Then, some parts of the combined vector are ignored by applying a sigmoided vector. That's how we learn.
+The Short-Term Memory STM and the Event are combined (technically, concatenated). Then, some parts of the combined vector are ignored by applying a sigmoided vector. That's how we learn.
 
 ![LSTM Learn Gate](./pics/lstm_learn_gate.png)
 
@@ -980,26 +988,216 @@ Basically, a network is defined to be trained with sequences of characters such 
 
 ## 5. Implementation of RNNs and LSTMs
 
-This setion is originally from the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repostory with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity).
+This setion is originally from the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repository with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity).
 
 The section consists basically of two examples:
 
 1. Implementation of a Simple RNN: A time series
 2. Implementation of an LSTM network: 
 
-The examples are implemented in the DL nanodegree repository, not the CV repo: [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch) `/ recurrent-neural-networks`.
+The examples are implemented in the DL Nanodegree repository, not the CV repo: [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch) `/ recurrent-neural-networks`.
 
 ### 5.1 Example 1: RNN
 
+Notebook: `Simple_RNN.ipynb`.
 
+In this notebook, a time-series prediction is carried out with a simple RNN: the last 20 values of a sine wave are used to predict the next one.
+
+The most important part is that the structure (inputs & outputs) of an RNN layer are shown:
+
+`nn.RNN(input_size, hidden_dim, n_layers, batch_first)`:
+
+- `input_size`: the vector size of the input; that's not the sequence length! In our case, each data point is a scalar, this `input_size = 1`.
+- `hidden_dim`: number on features in the RNN output and in the hidden state
+- `n_layers`: number of layers inside of an RNN, typically 1-3; if more than 1, we're stacking RNNs.
+- `batch_first`: whether or not the input/output of the RNN will have the batch_size as the first dimension, i.e.., `(batch_size, seq_length, hidden_dim)`.
+
+In order to give an input vectors a batch_size:
+
+```python
+seq_length = 20
+time_steps = np.linspace(0, np.pi, seq_length) # (20,)
+data = np.sin(time_steps)
+data.resize((seq_length, 1)) # (20,1)
+test_input = torch.Tensor(data).unsqueeze(0) # give it a batch_size of 1 as first dimension: (1,20,1)
+```
+
+**Important: look in the code comments the sizes of the vectors. The sizing conventions of an RNN are similar to the LSTM, except for the hidden memory states.**
+
+```python
+# input (batch_size, seq_length, input_size)
+# hidden (n_layers, batch_size, hidden_dim)
+# output (batch_size, time_step, hidden_size)
+
+output, hidden = nn.rnn(input, hidden)
+```
+
+In the following, the code of the notebook divided in the following sections:
+
+1. Create the data
+2. Define the Network
+3. Check the Input and Output Dimensions
+4. Test the RNN
+5. Train
+
+
+```python
+import torch
+from torch import nn
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+### -- 1. Create the data
+
+plt.figure(figsize=(8,5))
+
+# how many time steps/data pts are in one batch of data
+seq_length = 20
+
+# generate evenly spaced data pts
+time_steps = np.linspace(0, np.pi, seq_length + 1)
+data = np.sin(time_steps)
+data.resize((seq_length + 1, 1)) # size becomes (seq_length+1, 1), adds an input_size dimension
+
+x = data[:-1] # all but the last piece of data
+y = data[1:] # all but the first
+
+# display the data
+plt.plot(time_steps[1:], x, 'r.', label='input, x') # x
+plt.plot(time_steps[1:], y, 'b.', label='target, y') # y
+
+plt.legend(loc='best')
+plt.show()
+
+### -- 2. Define the Network
+
+class RNN(nn.Module):
+    def __init__(self, input_size, output_size, hidden_dim, n_layers):
+        super(RNN, self).__init__()
+        
+        self.hidden_dim=hidden_dim
+
+        # define an RNN with specified parameters
+        # batch_first means that the first dim of the input and output will be the batch_size
+        self.rnn = nn.RNN(input_size, hidden_dim, n_layers, batch_first=True)
+        
+        # last, fully-connected layer
+        self.fc = nn.Linear(hidden_dim, output_size)
+
+    def forward(self, x, hidden):
+        # x (batch_size, seq_length, input_size)
+        # hidden (n_layers, batch_size, hidden_dim)
+        # r_out (batch_size, time_step, hidden_size)
+        batch_size = x.size(0)
+        
+        # get RNN outputs
+        r_out, hidden = self.rnn(x, hidden)
+        # shape output to be (batch_size*seq_length, hidden_dim)
+        r_out = r_out.view(-1, self.hidden_dim)  
+        
+        # get final output 
+        output = self.fc(r_out)
+        
+        return output, hidden
+
+### -- 3. Check the Input and Output Dimensions
+
+# test that dimensions are as expected
+test_rnn = RNN(input_size=1, output_size=1, hidden_dim=10, n_layers=2)
+
+# generate evenly spaced, test data pts
+time_steps = np.linspace(0, np.pi, seq_length)
+data = np.sin(time_steps)
+print('Initial data size:', data.shape) # Initial data size: (20,)
+data.resize((seq_length, 1))
+
+test_input = torch.Tensor(data).unsqueeze(0) # give it a batch_size of 1 as first dimension
+print('Input size: ', test_input.size()) # Input size:  torch.Size([1, 20, 1])
+
+# test out rnn sizes
+# hidden states are input as None, ie. initialized as 0s
+test_out, test_h = test_rnn(test_input, None)
+print('Output size: ', test_out.size()) # Output size:  torch.Size([20, 1])
+print('Hidden state size: ', test_h.size()) # Hidden state size:  torch.Size([2, 1, 10])
+
+### -- 4. Test the RNN
+
+# decide on hyperparameters
+input_size=1 
+output_size=1
+hidden_dim=32
+n_layers=1
+
+# instantiate an RNN
+rnn = RNN(input_size, output_size, hidden_dim, n_layers)
+print(rnn)
+
+### -- 5. Train
+
+# MSE loss and Adam optimizer with a learning rate of 0.01
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(rnn.parameters(), lr=0.01) 
+
+# train the RNN
+def train(rnn, n_steps, print_every):
+    
+    # initialize the hidden state: None initializes to 0s
+    hidden = None      
+    
+    for batch_i, step in enumerate(range(n_steps)):
+        # defining the training data 
+        time_steps = np.linspace(step * np.pi, (step+1)*np.pi, seq_length + 1)
+        data = np.sin(time_steps)
+        data.resize((seq_length + 1, 1)) # input_size=1
+
+        x = data[:-1]
+        y = data[1:]
+        
+        # convert data into Tensors
+        x_tensor = torch.Tensor(x).unsqueeze(0) # unsqueeze gives a 1, batch_size dimension
+        y_tensor = torch.Tensor(y)
+
+        # outputs from the rnn
+        prediction, hidden = rnn(x_tensor, hidden)
+
+        ## Representing Memory ##
+        # take the latest hidden state and use it as input in next step, BUT
+        # make a new variable for hidden and detach the hidden state from its history
+        # this way, we don't backpropagate through the entire history
+        hidden = hidden.data
+
+        # calculate the loss
+        loss = criterion(prediction, y_tensor)
+        # zero gradients
+        optimizer.zero_grad()
+        # perform backprop and update weights
+        loss.backward()
+        optimizer.step()
+
+        # display loss and predictions
+        if batch_i%print_every == 0:        
+            print('Loss: ', loss.item())
+            plt.plot(time_steps[1:], x, 'r.') # input
+            plt.plot(time_steps[1:], prediction.data.numpy().flatten(), 'b.') # predictions
+            plt.show()
+    
+    return rnn
+
+# train the rnn and monitor results
+n_steps = 75
+print_every = 15
+
+trained_rnn = train(rnn, n_steps, print_every)
+```
 
 ### 5.2 Example 2: Character-Level LSTM
 
 This notebook is based on Andrej Karpathy's [post on RNNs](http://karpathy.github.io/2015/05/21/rnn-effectiveness/) and [implementation in Torch](https://github.com/karpathy/char-rnn).
 
-Since it is better covered in a module of the Deep Learning Nanodegree, I added that module here, which is the next one: 
+Since it is better covered in a module of the Deep Learning Nanodegree, I added that module here.
 
-Basically, a network is defined to be trained with sequences of characters such that the network is able to predict the next most likely character given the character sequence fed so far. In consequence, the network is able to generate a text character by character.
+Basically, a network is defined to be trained with sequences of characters such that the network is able to predict the next most likely character given the character sequence fed so far. In consequence, the network is able to generate a text character by character. **It is a very interesting network which could serve as a blueprint for similar situations; many things are touched**.
 
 I have an example of this in Tensorflow, too; have a look at:
 
@@ -1013,20 +1211,526 @@ Here is a figure of the architectural idea, drawn by Karpathy:
 
 ![Architecture idea of the network for character sequences, from Karpathy's blog post](./pics/karpathy_charseq.jpeg)
 
-The notebook is broken down to several parts, each covering important fundamentals typical from RNNs and text processing (for NLP):
-
-1. Encoding text
-2. Batch genration
-3. ...
-
 #### Encoding Text
 
-#### Batch Generation
+The text is encoded as follows:
 
-One very important thing is creating **batches**.
+- Vocabulary dictionaries are built: `int2char` and `char2int`; these convert each unique character into an integer and vice versa.
+- Integer representations of the characters are one-hot encoded: each integer representation becomes an array of `1/0` of the size of the maximum number of unique characters.
+
+#### Sequence Batching
+
+One very important thing is creating the **(mini) batches**. Before reading this, have a look at Sections 4.4 and 4.6.
+
+![Sequence Batching](./pics/sequence_batching.png)
+
+The array of encoded characters `arr` is split into multiple sequences, given by `batch_size`; each of the sequences will be `seq_length` long.
+
+Steps:
+
+1. Discard some text so that we have complete mini-batches. Each mini-batch contains `N x M = batch_size x seq_length` characters. The total number of mini-batches `K` is obtained by dividing the length of `arr` by the number of character per mini-batch. The total number of characters to keep will be `N * M * K`.
+2. Split `arr` into `N` batches: `arr.reshape(batch_size, -1)`; the `arr` with have a size of `N x (M*K)`. Recall we have saved the number of characters to have complete mini-batches.
+3. Iterate to get mini-batches. Each mini-batch is a `N x M` window in the `N x (M*K)` array, where `M = seq_length`. Input and output/expected sequences are created from the same data, but the output/expected is shifted by one character.
+
+#### LSTM layers
+
+```python
+# input_size: number of inputs, number of units in the input vector = number of characters
+# hidden_size: number of outputs, length of the output vector, number of units in the output vector
+# n_layers: number of hidden layers used; 1 == the LSTM cell has 1 hidden state
+# Note that we pass a SEQUENCE of vectors of dimension input_size;
+input_size = 4 # example: dimensions of the input word embedding / number of unique characters
+hidden_size = 3 # example: number output class categories, if we directly have the output after the LSTM
+n_layers = 1 # usually 1 (default) to 3
+lstm = nn.LSTM(input_size=input_size,
+			   hidden_size=hidden_size,
+			   num_layers=n_layers,
+			   dropout=drop_prob,
+			   batch_first=True)
+# batch_first: first dimension is the batch
+# We can add dropout layers on the outputs of each LSTM layer if we add the argument dropout=drop_p
+# drop_p needs to be non-zero; dropout layer is added in all layers except the last one.
+# Default: 0
+
+# If we want to have a large hidden_size
+# and predict a vector with the same shape as the input
+# we need a linear layer which maps from the hidden_size to the input_size=output_size
+fc = nn.Linear(n_hidden, input_size)
+```
+
+#### Notebook
+
+The notebook is broken down to several parts, each covering important fundamentals typical from RNNs and text processing (for NLP):
+
+1. Encoding the Text
+2. Batch Generation
+3. Network Definition
+4. Train
+5. Notes on Hyperparameter Tuning
+6. Saving the Model
+7. Prediction Function
+8. Priming and Generating Text
+9. Load Network and Predict
+
+Some important concepts are used in the notebook, summarized in the following:
+
+- Clipping: `clip_grad_norm` is used to clip gradient values and prevent exploding gradients.
+- Memory: the hidden state is copied to a new tuple to prevent backprop through the entire training history. Why?
+- The use of `contiguous`: `.view()` does not change the ordering of the data in memory; to re-order the elements in a tensor in memory, we need to use `reshape` or `contiguous`.
+- Priming: Text prediction needs some priming or initial characters in order to build the first memory correctly; otherwise, random characters are predicted.
+- Hyperparameter tuning: nice suggestion from Karpathy are in the comments:
+	- Track the validation loss: if larger than the train loss overfitting; if similar, underfitting.
+	- If overfitting: reduce complexity of add droput.
+	- If underfitting: increase complexity: `n_hidden`, `n_layers` (try to keeo 2-3).
+	- Rule of thumb: number of parameters of model should be of similar order of magnitude as the number of training characters.
+	- The validation data needs to be significant (at least 10%).
+	- The larger the `seq_length` the better, because the longer are the dependencies.
+	- Usual strategies:
+		- Define complex model, if overfitting, increase dropout probability.
+		- Train different models, take the one that reaches the smallest validation loss.
+
+```python
+import numpy as np
+import torch
+from torch import nn
+import torch.nn.functional as F
+
+### -- 1. Encoding the Text 
+
+# open text file and read in data as `text`
+with open('data/anna.txt', 'r') as f:
+    text = f.read()
+
+# Show first 100 characters
+text[:100]
+
+# Tokenization
+# encode the text and map each character to an integer and vice versa
+
+# we create two dictionaries:
+# 1. int2char, which maps integers to characters
+# 2. char2int, which maps characters to unique integers
+chars = tuple(set(text))
+int2char = dict(enumerate(chars))
+char2int = {ch: ii for ii, ch in int2char.items()}
+
+# encode the text
+encoded = np.array([char2int[ch] for ch in text])
+
+# Show first 100 encoded characters
+encoded[:100]
+encoded.shape
+
+def one_hot_encode(arr, n_labels):
+    
+    # Initialize the encoded array
+    one_hot = np.zeros((arr.size, n_labels), dtype=np.float32)
+    
+    # Fill the appropriate elements with ones
+    one_hot[np.arange(one_hot.shape[0]), arr.flatten()] = 1.
+    
+    # Finally reshape it to get back to the original array
+    one_hot = one_hot.reshape((*arr.shape, n_labels))
+    
+    return one_hot
+
+# check that the function works as expected
+test_seq = np.array([[3, 5, 1]])
+one_hot = one_hot_encode(test_seq, 8)
+
+print(one_hot)
+# [[[0. 0. 0. 1. 0. 0. 0. 0.]
+#  [0. 0. 0. 0. 0. 1. 0. 0.]
+#  [0. 1. 0. 0. 0. 0. 0. 0.]]]
+
+### -- 2. Batch Generation
+
+# 1. Discard some text so that we have complete mini-batches.
+# Each mini-batch contains `N x M = batch_size x seq_length` characters.
+# The total number of mini-batches `K` is obtained by dividing the length of `arr`
+# by the number of character per mini-batch.
+# The total number of characters to keep will be `N * M * K`.
+# 2. Split `arr` into `N` batches: `arr.reshape(batch_size, -1)`;
+# the `arr` with have a size of `N x (M*K)`.
+# Recall we have saved the number of characters to have complete mini-batches.
+# 3. Iterate to get mini-batches.
+# Each mini-batch is a `N x M` window in the `N x (M*K)` array, where `M = seq_length`.
+# Input and output/expected sequences are created from the same data,
+# but the output/expected is shifted by one character.
+def get_batches(arr, batch_size, seq_length):
+    '''Create a generator that returns batches of size
+       batch_size x seq_length from arr.
+       
+       Arguments
+       ---------
+       arr: Array you want to make batches from
+       batch_size: Batch size, the number of sequences per batch
+       seq_length: Number of encoded chars in a sequence
+    '''
+    
+    ## TODO: Get the number of batches we can make
+    # the passed array of shape (x,),
+    # so the for loop in the shape tuple is unnecessary
+    n_chars = arr.shape[0]
+    n_batches = int(np.floor(n_chars / (batch_size*seq_length)))
+    
+    ## TODO: Keep only enough characters to make full batches
+    # the passed encoded arrray is of size (x,)
+    arr = arr[:(batch_size*seq_length*n_batches)]
+    
+    ## TODO: Reshape into batch_size rows
+    # (batch_size, -1 = seq_length*n_batches)
+    arr = arr.reshape(batch_size, -1)
+    
+    ## TODO: Iterate over the batches using a window of size seq_length
+    for n in range(0, arr.shape[1], seq_length):
+        # The features
+        x = arr[:,n:(n+seq_length)]
+        # The targets, shifted by one
+        # Since we shift one chracter at a time, the last mini-batch
+        # has one character less;
+        # I solve this by taking the very first character of the text.
+        if (n+seq_length+1) <= arr.shape[1]:
+            y = arr[:,(n+1):(n+seq_length+1)]
+        else:
+            y = np.zeros_like(x)
+            y[:,0:(seq_length-1)] = arr[:,(n+1):(n+seq_length)]
+            y[:,(seq_length-1)] = arr[:,0]
+        yield x, y
+
+# Test
+batches = get_batches(encoded, 8, 50)
+x, y = next(batches)
+
+# printing out the first 10 items in a sequence
+print('x\n', x[:10, :10])
+print('\ny\n', y[:10, :10])
+
+# Check that we don't have an IndexError
+# and all mini-batch sizes are correct
+count = 0
+for x,y in get_batches(encoded, 8, 50):
+    print(count+1, x.shape, y.shape, x[0,-5:-1], y[0,-5:-1])
+    count += 1
+
+### -- 3. Network Definition
+
+# check if GPU is available
+train_on_gpu = torch.cuda.is_available()
+if(train_on_gpu):
+    print('Training on GPU!')
+else: 
+    print('No GPU available, training on CPU; consider making n_epochs very small.')
+
+class CharRNN(nn.Module):
+    
+    def __init__(self, tokens, n_hidden=256, n_layers=2,
+                               drop_prob=0.5, lr=0.001):
+        super().__init__()
+        self.drop_prob = drop_prob
+        self.n_layers = n_layers
+        self.n_hidden = n_hidden
+        self.lr = lr
+        
+        # creating character dictionaries
+        self.chars = tokens # number of unique characters
+        self.int2char = dict(enumerate(self.chars))
+        self.char2int = {ch: ii for ii, ch in self.int2char.items()}
+        
+        ## TODO: define the LSTM
+        self.lstm = nn.LSTM(len(self.chars), n_hidden, n_layers, 
+                            dropout=drop_prob, batch_first=True)
+        
+        ## TODO: define a dropout layer
+        self.dropout = nn.Dropout(drop_prob)
+        
+        ## TODO: define the final, fully-connected output layer
+        self.fc = nn.Linear(n_hidden, len(self.chars))
+
+    def forward(self, x, hidden):
+        ''' Forward pass through the network. 
+            These inputs are x, and the hidden/cell state `hidden`. '''
+                
+        ## TODO: Get the outputs and the new hidden state from the lstm
+        r_output, hidden = self.lstm(x, hidden)
+        
+        ## TODO: pass through a dropout layer
+        out = self.dropout(r_output)
+        
+        # Stack up LSTM outputs using view
+        # you may need to use contiguous to reshape the output
+        # .view does not copy or re-order the tensor elements,
+        # it's just a view; with .contiguous() we re-order them in memory, too!
+        # If we get a RunTimError related to view, try reshape or contiguous
+        out = out.contiguous().view(-1, self.n_hidden)
+        
+        ## TODO: put x through the fully-connected layer
+        out = self.fc(out)
+        
+        # return the final output and the hidden state
+        return out, hidden
+    
+    
+    def init_hidden(self, batch_size):
+        ''' Initializes hidden state '''
+        # Create two new tensors with sizes n_layers x batch_size x n_hidden,
+        # initialized to zero, for hidden state and cell state of LSTM
+        weight = next(self.parameters()).data
+        
+        if (train_on_gpu):
+            hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_().cuda(),
+                  weight.new(self.n_layers, batch_size, self.n_hidden).zero_().cuda())
+        else:
+            hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_(),
+                      weight.new(self.n_layers, batch_size, self.n_hidden).zero_())
+        
+        return hidden
+
+### -- 4. Train
+
+def train(net, data, epochs=10, batch_size=10, seq_length=50, lr=0.001, clip=5, val_frac=0.1, print_every=10):
+    ''' Training a network 
+    
+        Arguments
+        ---------
+        
+        net: CharRNN network
+        data: text data to train the network
+        epochs: Number of epochs to train
+        batch_size: Number of mini-sequences per mini-batch, aka batch size
+        seq_length: Number of character steps per mini-batch
+        lr: learning rate
+        clip: gradient clipping
+        val_frac: Fraction of data to hold out for validation
+        print_every: Number of steps for printing training and validation loss
+    
+    '''
+    net.train()
+    
+    opt = torch.optim.Adam(net.parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+    
+    # create training and validation data
+    val_idx = int(len(data)*(1-val_frac))
+    data, val_data = data[:val_idx], data[val_idx:]
+    
+    if(train_on_gpu):
+        net.cuda()
+    
+    counter = 0
+    n_chars = len(net.chars)
+    for e in range(epochs):
+        # initialize hidden state
+        h = net.init_hidden(batch_size)
+        
+        for x, y in get_batches(data, batch_size, seq_length):
+            counter += 1
+            
+            # One-hot encode our data and make them Torch tensors
+            x = one_hot_encode(x, n_chars)
+            inputs, targets = torch.from_numpy(x), torch.from_numpy(y)
+            
+            if(train_on_gpu):
+                inputs, targets = inputs.cuda(), targets.cuda()
+
+            # Creating new variables for the hidden state, otherwise
+            # we'd backprop through the entire training history
+            h = tuple([each.data for each in h])
+
+            # zero accumulated gradients
+            net.zero_grad()
+            
+            # get the output from the model
+            output, h = net(inputs, h)
+            
+            # calculate the loss and perform backprop
+            # .view does not copy or re-order the tensor elements,
+            # it's just a view; with .contiguous() we re-order them in memory, too!
+            # If we get a RunTimError related to view, try reshape or contiguous
+            loss = criterion(output, targets.contiguous().view(batch_size*seq_length).long())
+            loss.backward()
+            # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
+            nn.utils.clip_grad_norm_(net.parameters(), clip)
+            opt.step()
+            
+            # loss stats
+            if counter % print_every == 0:
+                # Get validation loss
+                val_h = net.init_hidden(batch_size)
+                val_losses = []
+                net.eval()
+                for x, y in get_batches(val_data, batch_size, seq_length):
+                    # One-hot encode our data and make them Torch tensors
+                    x = one_hot_encode(x, n_chars)
+                    x, y = torch.from_numpy(x), torch.from_numpy(y)
+                    
+                    # Creating new variables for the hidden state, otherwise
+                    # we'd backprop through the entire training history
+                    val_h = tuple([each.data for each in val_h])
+                    
+                    inputs, targets = x, y
+                    if(train_on_gpu):
+                        inputs, targets = inputs.cuda(), targets.cuda()
+
+                    output, val_h = net(inputs, val_h)
+                    # .view does not copy or re-order the tensor elements,
+                    # it's just a view; with .contiguous() we re-order them in memory, too!
+                    # If we get a RunTimError related to view, try reshape or contiguous
+                    val_loss = criterion(output, targets.contiguous().view(batch_size*seq_length).long())
+                
+                    val_losses.append(val_loss.item())
+                
+                net.train() # reset to train mode after iterationg through validation data
+                
+                print("Epoch: {}/{}...".format(e+1, epochs),
+                      "Step: {}...".format(counter),
+                      "Loss: {:.4f}...".format(loss.item()),
+                      "Val Loss: {:.4f}".format(np.mean(val_losses)))
+
+## TODO: set your model hyperparameters
+# define and print the net
+n_hidden = 512
+n_layers = 2
+
+net = CharRNN(chars, n_hidden, n_layers)
+print(net)
+
+batch_size = 128 # complete text breaken down to batch_size sequences
+seq_length = 100 # sequence length
+n_epochs = 20 # start small if you are just testing initial behavior
+
+# Sequences of the mini-batches DO NOT overlap
+print(f"Number of approximate steps: {int(np.floor(encoded.shape[0]/(batch_size*seq_length)))}")
+
+# train the model
+train(net, encoded, epochs=n_epochs, batch_size=batch_size, seq_length=seq_length, lr=0.001, print_every=10)
+
+### -- 5. Notes on Hyperparameter Tuning
+
+# Some very nice rules of thumb/guidelines are provided in Karpathy's blog:
+
+# - Track the validation loss: if larger than the train loss overfitting; if similar, underfitting.
+# - If overfitting: reduce complexity of add droput.
+# - If underfitting: increase complexity: `n_hidden`, `n_layers` (try to keeo 2-3).
+# - Rule of thumb: number of parameters of model should be of similar order of magnitude as the number of training characters.
+# - The validation data needs to be significant (at least 10%).
+# - The larger the `seq_length` the better, because the longer are the dependencies.
+# - Usual strategies:
+# 	- Define complex model, if overfitting, increase dropout probability.
+# 	- Train different models, take the one that reaches the smallest validation loss.
+
+### -- 6. Saving the Model
+
+# change the name, for saving multiple files
+model_name = 'rnn_x_epoch.net'
+
+checkpoint = {'n_hidden': net.n_hidden,
+              'n_layers': net.n_layers,
+              'state_dict': net.state_dict(),
+              'tokens': net.chars}
+
+with open(model_name, 'wb') as f:
+    torch.save(checkpoint, f)
+
+### -- 7. Prediction Function
+
+# After applying softmax to the output
+# We take the top-k largest or most likely characters
+# and randomly pick from that subset
+
+def predict(net, char, h=None, top_k=None):
+        ''' Given a character, predict the next character.
+            Returns the predicted character and the hidden state.
+        '''
+        
+        # tensor inputs
+        x = np.array([[net.char2int[char]]])
+        x = one_hot_encode(x, len(net.chars))
+        inputs = torch.from_numpy(x)
+        
+        if(train_on_gpu):
+            inputs = inputs.cuda()
+        
+        # detach hidden state from history
+        h = tuple([each.data for each in h])
+        # get the output of the model
+        out, h = net(inputs, h)
+
+        # get the character probabilities
+        p = F.softmax(out, dim=1).data
+        if(train_on_gpu):
+            p = p.cpu() # move to cpu
+        
+        # get top characters
+        if top_k is None:
+            top_ch = np.arange(len(net.chars))
+        else:
+            p, top_ch = p.topk(top_k)
+            top_ch = top_ch.numpy().squeeze()
+        
+        # select the likely next character with some element of randomness
+        p = p.numpy().squeeze()
+        char = np.random.choice(top_ch, p=p/p.sum())
+        
+        # return the encoded value of the predicted char and the hidden state
+        return net.int2char[char], h
+
+### -- 8. Priming and Generating Text
+
+# Usually, we want to prime the network so that we build up a hidden state.
+# Otherwise, the network starts generating characters at random.
+# In general, the first characters are usually a bit rough until the memory is built.
+
+def sample(net, size, prime='The', top_k=None):
+        
+    if(train_on_gpu):
+        net.cuda()
+    else:
+        net.cpu()
+    
+    net.eval() # eval mode
+    
+    # First off, run through the prime characters
+    chars = [ch for ch in prime]
+    h = net.init_hidden(1)
+    for ch in prime:
+        char, h = predict(net, ch, h, top_k=top_k)
+
+    chars.append(char)
+    
+    # Now pass in the previous character and get a new one
+    for ii in range(size):
+        char, h = predict(net, chars[-1], h, top_k=top_k)
+        chars.append(char)
+
+    return ''.join(chars)
+
+
+print(sample(net, 1000, prime='Anna', top_k=5))
+
+### -- 9. Load Network and Predict
+
+# Here we have loaded in a model that trained over 20 epochs `rnn_20_epoch.net`
+with open('rnn_20_epoch.net', 'rb') as f:
+    if (train_on_gpu):
+        checkpoint = torch.load(f)
+    else: 
+        checkpoint = torch.load(f,map_location=torch.device('cpu'))
+
+loaded = CharRNN(checkpoint['tokens'], n_hidden=checkpoint['n_hidden'], n_layers=checkpoint['n_layers'])
+loaded.load_state_dict(checkpoint['state_dict'])
+
+# Sample using a loaded model
+print(sample(loaded, 2000, top_k=5, prime="And Levin said"))
+```
 
 
 ## 6. Hyperparameters
+
+This section is instructed ba Jay Alammar: [Jay Alammar's Blog](http://jalammar.github.io/).
+
+
+
 
 
 ## 7. Attention Mechanisms
