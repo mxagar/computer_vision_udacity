@@ -1856,12 +1856,181 @@ More papers:
 
 - [Practical recommendations for gradient-based training of deep architectures; Bengio](https://arxiv.org/abs/1206.5533)
 - [Practical Methodology for Hyperparamaters; DL Book by Goodfellow](https://www.deeplearningbook.org/contents/guidelines.html)
-- [Effcient BackProp; LeCun](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf)
+- [Efficient BackProp; LeCun](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf)
 - [How to Generate a Good Word Embedding?](https://arxiv.org/abs/1507.05523)
 - [Systematic evaluation of CNN advances on the ImageNet](https://arxiv.org/abs/1606.02228)
 
 ## 7. Attention Mechanisms
 
+Attention is probably one of the most important topics in Deep Learning in the last years.
+
+Motivation: Human perception does not process the entire scene at once; instead, humans focus attention selectively, acquire more information if required guiding the eye, and combine information from different fixations.
+
+Attention tries to mimic that: sequential integration of processed information pieces that belong to different parts of the input. That is achieved with **Transformers**. The original paper is in the `literature/` folder, and linked here: [Attention Is All You Need](https://arxiv.org/abs/1706.03762).
+
+Attention was a huge step in sequence-to-sequence models, like the machine translation models. The overperformed anything that we had beforehand.
+
+### 7.1 Sequence to Sequence Models
+
+A sequence to sequence model is one that accepts a sequence of values as input and outputs a sequence of values at the end. Since we work with vectors, a sequence can be any vector or series of vectors. Lengths do not matter.
+
+Thus, many applications match this case:
+
+- Machine translation: input Enlish phase, target French sentence.
+- Summarization: input news articles (long texts), target summaries (short texts).
+- Question-Answer Network: input questions, target answers.
+- Chatbots: trained with dialogue data.
+- Image captioning.
+
+### 7.1 Encoders and Decoders
+
+Sequence-to-sequence models work under the hood with an encoder-decoder architecture:
+
+- The encoder takes the input and processes it to a state or context representation. That processing is often a compression or a summarization.
+- That context or state representation is a vector of fixed sized.
+- The state or context representation is processed by the decoder to generate the output. That processing is often and expansion.
+
+If we use RNN cells as encoders and decoders, they'll have internal loops, because they use their history/memory to produce their outputs. If we input sentences, tokens are passed as sequences, one token after the other. That is true for both the encoder as well as the decoder: the decoder inputs its output tokens to itself.
+
+![Encoder-Decoder](./pics/encoder_decoder_sequences.png)
+
+Note that the encoder-decoder architecture doesn't need to be formed by RNNs cells only! It can consists of CNNs, too. That way, we can generate image captions! They idea is that we input an image to the CNN encoder, which creates a image representation vectors, which is then fed to a RNN decoder which composes a sentence.
+
+### 7.2 Elective: Text Sentiment Analysis
+
+This section is covered in the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repostory with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity). There is also a forked DL exercise repo, too: [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch).
+
+The lectures and notes by Andrew Trask on Sentiment Analysis are in the module 2, Lesson 5: `02_Neural_Networks/`.
+
+### 7.3 Shortcomings of Sequence-to-Sequence Models and Attention Overview
+
+Sequence-to-Sequence models that work with text or any other sequential data have an important shortcoming:
+
+- They take the sequence of tokens, passed to the encoder.
+- The encoder produces a context representation for each token, but it's not passed to the decoder; instead, the state is fed to the decoder together with the next token. Note that the context representation is often a vector of length `256-512`.
+- When the sentence or sequence of tokens is finished, the final context or state is passed to the decoder.
+
+![Sequence-to-sequence: Shortcomings](./pics/sequence_to_sequence.png)
+
+So: if we pass long sequences, we loose the importance of the initial items. We could have a large context vector to compensate that, but that introduces another problem: we overfit short sequences and we take a performance hit as we increase the number of parameters.
+
+**This is the problem that attention mechanisms solve so efficiently!**
+
+In **attention encoding** we stack all the hidden states or context vectors generated when passing all sequence items one after the other; that stacking is done by preserving the sequence order:
+
+![Attention: Encoding](./pics/attention_encoding.png)
+
+The **attention decoder** uses the matrix of stacked states to generate the sequential output, but these state vectors are not necessarily used in the order they were input! That is typical for language translation: the word order can significantly change.
+
+Also, note that the context matrix passed to the decoder might vary in size: its size depends on the length of the input sequence!
+
+### 7.4 Attention Encoder and Decoder
+
+Taking as example the machine translation application, the attention encoding and decoding works as follows:
+
+- Words are converted to fix sized vectors of size 200-300; thus, we have a sequence of `N` such vectors.
+- We pass the sequences one by one to the attention encoder, which is often times an LSTM layer. It produces `N` hidden state vectors, stacked one after the other.
+
+![Attention Encoder](./pics/attention_encoder.png)
+
+- The decoder receives the states matrix and computes a score for each column or state; we have `N` scores, which are softmaxed. Then, the columns are multiplied by their softmaxed score and all `N` columns are summed to obtain the **context vector** `c`.
+- The decoder receives also the last token of the input sequence.
+- In summary, the decoder has then:
+	- The state matrix with `N` columns.
+	- The context vector computed with the scores and the state matrix.
+	- The last token fed to the encoder.
+
+![Attention Decoder](./pics/attention_decoder.png)
+
+- Thanks to the context vector and given the input token, the decoder focuses on the correct hidden state column in the matrix and produces a word/token vector.
+- In the next step:
+	- the decoder takes the last generated word vector as input word
+	- it computes a new context vector
+	- with the input token vectors and the context vector, the next word vector is produced.
+- The process goes on until we finish the output sequence.
+
+![Attention Decoder: Sequence Generation](./pics/attention_decoder_sequence.png)
+
+In summary, the encoder works as in sequence-to-sequence models without attention. However, the decoder works differently: it takes all the hidden states and selects where to focus at each time using the context vector.
+
+### 7.5 Bahdanau and Luong Attention: Introduction
+
+There are two types of attention: **additive and multiplicative attention**.
+
+- Additive or Bahdanau attention: [Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473).
+- Multiplicative or Luong attention: [Effective Approaches to Attention-based Neural Machine Translation](https://arxiv.org/abs/1508.04025).
+
+**Bahdanau or additive attention** is the first one, which proposed many of the ideas explained so far. The **score function** is a weighted sum of the hidden state of the encoder at each time step and the previous hidden state of the decoder. The weights are learned. We get a score value for each decoder time step. The scores are softmaxed and the context vector is the weighted sum of the hidden states multiplied by the softmaxed score.
+
+![Bahdanau or Additive Attention](./pics/bahdanau_additive_attention.png)
+
+**Luong or multiplicative attention** builds on the Bahdanau attention. It takes the hidden state of the top layer, so we can stack several LSTMs; many models are built following this structure right now. The **scoring functions** are three that we can choose from:
+
+- Dot: scalar product of the hidden state vector from the encoder and the decoder. Multiplicative attention gets its name from here.
+- General: same as before, but with a weight matrix in between, which is learned.
+- Concatenation: a very similar score function as Bahdanau's, but hidden state vectors are concatenated instead of summed.
+
+Once the scores are obtained, the final context vector is computed similarly, and the context vector together with the encoder hidden state yield the encoder output or hidden state.
+
+![Luong or Multiplicative Attention](./pics/luong_multiplicative_attention.png)
+
+Key takeaway: attention gives the ability to look at all the elements in the sequence each time, no matter how far away they are.
+
+### 7.6 Multiplicative or Luong Attention
+
+We've seen that there are 3 types of scores in multiplicative attention; in the case of the dot score, it basically consists in performing the scalar product between the hidden state vector of the decoder and all the hidden state vectors stacked in a matrix of the encoder. That yields a scores vector of length equal to the number of items in the input sequence.
+
+As any scalar product, the result is a similarity value between the vectors: the more similar, in direction, the larger the product value will be (because the cosine approaches to 1). That makes a lot of sense: we are comparing the hidden state produced by the decoder at this time against all hidden states associated to the input sequence. The most similar yields higher scores, thus it's importance should be larger for the present decoder hidden state.
+
+![Multiplicative Attention: Dot Score](./pics/multiplicative_score.png)
+
+Now, this works if the hidden states of the encoder and the decoder have the same dimensions, i.e., the embedding dimension is the same for both. In machine translation that is often not the case. Thus, the solution is to use the general dot score, which consists in applying a weight matrix in-between which maps between both embedding dimensions:
+
+![Multiplicative Attention: General Score](./pics/multiplicative_score_general.png)
+
+So, in summary, these are the steps that occur in a sequence-to-sequence model with attention:
+
+- Complete sequence is passed to the encoder.
+- A matrix of hidden state vectors is computed.
+- We pass the last token vector and the matrix of hidden stated to the decoder.
+- The first step in the decoder consists in taking a first hidden state + the last token; both are processed and a decoder hidden state is produced.
+- Then, we take the hidden state we produced in the decoder and the matrix of hidden states of the encoder, and we compute the scores: one for each encoder hidden state.
+- With the scores, the attention context vector is computed as a sum.
+- The context vector and the decoder hidden state are concatenated.
+- We pass the concatenated vector through a fully connected layer, i.e., we multiply it by a weight matrix and apply an activation function (`tanh`).
+- That output is the first token in the output sequence!
+- Then, the process is repeated, this time taking the output token as the input token and the last hidden state of the decoder. We repeat the process until we have completed our output sequence.
+
+Key takeaway: we take the hidden state of the decoder at each time step or sequence element and contrast it with all the encoder hidden states to produce importance scores for each of the encoder hidden states.
+
+![Multiplicative Attention: Process](./pics/multiplicative_attention_process.png)
+
+Questions:
+
+- How do we know when to finish really?
+- Does the number of output/translated words/tokens need to be the same as in the orginal/input sentence?
+
+### 7.7 Additive or Bahdanau Attention
+
+Additive or Bahdenau attention is very similar to the third type of score computation in the multiplicative attention approach called *concat*; in the *concat* score computation hidden state vectors are concatenated and passed through a fully connected layer (i.e., they are multiplied by a weight matrix). In Bahdenau, instead of concatenating, we sum both after applying specific weight matrices in each of them.
+
+One score computation with `concat` is as follows:
+
+![Multiplicative Attention: Concatenation Score](./pics/multiplicative_score_concat.png)
+
+This slide highlights the differences between mutiplicative-`concat` (Luong) and additive (Bahdenau):
+
+![Multiplicative vs Additive Attention: Differences](./pics/bahdenau_vs_luong_concat.png)
+
+### 7.8 Computer Vision Applications: Image Captioning
+
+This section focuses on the following paper:
+
+[Show, Attend and Tell: Neural Image Caption Generation with Visual Attention](https://arxiv.org/pdf/1502.03044.pdf)
+
+It can be found in
+
+`literature/XuBengio_ImageCaption_Attention_2016.pdf`
 
 
 ## 8. Image Captioning

@@ -50,3 +50,15 @@ Bengio_PracticalRecommendations_2012.pdf
 
 LaiZhao_GoodWordEmbeddings_2015.pdf
 	Recommendations for word embeddings.
+
+Vaswani_Attention_2017.pdf
+	Attention and transformers.
+
+Luong_Attention_2015.pdf
+	Luong Attention: Multiplicative attention.		
+
+BahdanauBengio_AttentionTranslation_2016.pdf
+	Bahdanau Attention: Additive attention.
+
+XuBengio_ImageCaption_Attention_2016.pdf
+	Image captioning with attention.
