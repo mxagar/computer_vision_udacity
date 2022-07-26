@@ -1777,8 +1777,88 @@ There are three major approaches when it comes to select the number of data-poin
 
 There has been discussion as to which approach to use; it seems that using the mini-batch approach is the best; we can try the following `batch_size` values:
 
-`[1, 2, 4, ]`
+`[1, 2, 4, 8, 16, 32, 64, 128, 256, ...]`
 
+Larger values allow for computational boosts with matrix multiplications; but we need more memory for that.
+
+In contrast, smaller mini-batch sizes have more error in the gradient error, and that error is helpful, because it prevents from landing in local minima!
+
+Mishkin et al. showed that the accuracy decreased from a mini-batch size upwards; look in the `literature/` folder.
+
+Conclusion: to small mini-batches could be too slow, too large mini-batches could increase the error. The sweet spot is often in the middle.
+
+### 6.3 Number of Epochs
+
+The number of epochs should be determined by the validation error: when in the past 10-20 mini-batches it hasn't significantly improved, we can apply early stopping.
+
+### 6.4 Number of Hidden Layers / Units
+
+Now, let's talk about the hyperparameters that relate to the architecture itself.
+
+It is commonly written about **model capacity**: the capacity of the model to learn the function it is approximating. To have the optimum capacity, we need to have *enough hidden units and layers*; that amount depends on the complexity of the function we're trying to approximate.
+
+In other words, capacity = number of hidden units and layers.
+
+If we give the model too much capacity than *enough* (i.e., more hidden units and layers), it will learn the noise and overfit the dataset.
+
+Heuristic guidelines:
+
+- If the training loss decreases of he training accuracy increases, but the validation has plateaued or does the opposite, decrease capacity or use dropout.
+- If the validation error doesn't improve, keep adding capacity until it starts to improve.
+- Having a little more capacity than optimum is OK.
+- Having more units in the first hidden layer than the number of inputs has been observed to be beneficial.
+- Number of layers (Karpathy's recommendations):
+	- 3-layer networks often outperform 2-layer ones, but going deeper (4,5,6-layers) doesn't help much.
+	- BUT: in CNNs going deeps is necessary for a good recognition system! Having at least 10 layers is often a must.
+
+
+Interesting links:
+
+- [Neural Networks, Karpathy](https://cs231n.github.io/neural-networks-1/)
+- [Machine Learning Basics, DL Book by Goodfellow](https://www.deeplearningbook.org/contents/ml.html)
+
+### 6.5 RNN Hyperparameters
+
+When it comes to recurrent neural networks, we need to choose:
+
+- The type of RNN cells in the layer: Simple Elman RNN, LSTM, GRU.
+- How many layers we're going to have.
+- If our inputs are words, we also need to look at the embedding dimensionality.
+
+Heuristic guidelines:
+
+- LSTMs and GRUs perform better than Simple RNN cells.
+- LSTMs are more commonly used; there's no clear winner between LSTMs and GRUs. We should try both.
+- A depth of at least 2 layers seems necessary, but increasing it to 3 gives mixed results usually; exceptions are tasks like speech recognition, which give the best results with 5-7 layers. Probably, 2 is a nice start, and then we should read application-specific papers to have an idea of which depths to try.
+- Embedding dimensionality (size or word vectors):
+	- Some applications show there is no much improvement after 50.
+	- Some applications show there is improvement until 200.
+	- However, it's not unusual seeing embeddings of dimensions 500-1000. But not much larger.
+
+Interesting papers on hyperparameters for RNNs and comparing LSTMs vs. GRUs:
+
+- [Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling; Chung, Bengio et al.](https://arxiv.org/abs/1412.3555): *"Our results are not conclusive in comparing the LSTM and the GRU, which suggests that the choice of the type of gated recurrent unit may depend heavily on the dataset and corresponding task."*
+- [An Empirical Exploration of Recurrent Network Architectures; Jozefowicz, Sutskever et al.](http://proceedings.mlr.press/v37/jozefowicz15.pdf): *"The GRU outperformed the LSTM on all tasks with the exception of language modelling"*.
+- [Visualizing and Understanding Recurrent Networks; Karpathy, Fei-Fei et al.](https://arxiv.org/abs/1506.02078): *"Our consistent finding is that depth of at least two is beneficial. However, between two and three layers our results are mixed. Additionally, the results are mixed between the LSTM and the GRU, but both significantly outperform the RNN."*.
+- [Massive Exploration of Neural Machine Translation Architectures; Britz et al.](https://arxiv.org/abs/1703.03906v2): *"LSTM cells consistently outperformed GRU cells"*.
+
+More papers, application-specific:
+
+- [Neural Speech Recognizer: Acoustic-to-Word LSTM Model for Large Vocabulary Speech Recognition](https://arxiv.org/abs/1610.09975)
+- [Speech Recognition with Deep Recurrent Neural Networks](https://arxiv.org/abs/1303.5778)
+- [Sequence to Sequence Learning with Neural Networks](https://arxiv.org/abs/1409.3215)
+- [Show and Tell: A Neural Image Caption Generator](https://arxiv.org/abs/1411.4555)
+- [DRAW: A Recurrent Neural Network For Image Generation](https://arxiv.org/abs/1502.04623)
+- [A Long Short-Term Memory Model for Answer Sentence Selection in Question Answering](https://aclanthology.org/P15-2116/)
+- [Sequence-to-Sequence RNNs for Text Summarization](https://www.semanticscholar.org/paper/Sequence-to-Sequence-RNNs-for-Text-Summarization-Nallapati-Xiang/221ef0a2f185036c06f9fb089109ded5c888c4c6?p2df)
+
+More papers:
+
+- [Practical recommendations for gradient-based training of deep architectures; Bengio](https://arxiv.org/abs/1206.5533)
+- [Practical Methodology for Hyperparamaters; DL Book by Goodfellow](https://www.deeplearningbook.org/contents/guidelines.html)
+- [Effcient BackProp; LeCun](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf)
+- [How to Generate a Good Word Embedding?](https://arxiv.org/abs/1507.05523)
+- [Systematic evaluation of CNN advances on the ImageNet](https://arxiv.org/abs/1606.02228)
 
 ## 7. Attention Mechanisms
 

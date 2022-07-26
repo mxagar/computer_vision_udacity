@@ -38,3 +38,15 @@ KingmaBa_Adam_2015.pdf
 
 MishkinMatas_HyperparameterTuning_2016.pdf
 	The effects of different CNN parameters are analyzed.
+
+Gregor_Draw_RNNImages_2015.pdf
+	RNN for image generation.
+
+Vinyals_ImageCaptioning_2015.pdf
+	Image caption generator with LSTMs.
+
+Bengio_PracticalRecommendations_2012.pdf
+	Practical recommendations for NNs.	
+
+LaiZhao_GoodWordEmbeddings_2015.pdf
+	Recommendations for word embeddings.
