@@ -2032,8 +2032,111 @@ It can be found in
 
 `literature/XuBengio_ImageCaption_Attention_2016.pdf`
 
+The work presented a state-of-the-art image captioning system, trained on the [COCO dataset](https://cocodataset.org/#home). The COCO dataset has 200k images labelled with ground truth 5 captions; the images are also labelled for object detection and segmentation. Note that each image could have several image captions as ground truth.
+
+The model is very similar to the sequence-to-sequence models with attention presented so far. The encoder has a CNN and the decoder uses an RNN which generates the tokens sequentially using attention. 
+
+![Image Captioning Model](./pics/image_caption_model.png)
+
+An example of a bird in an image and how the attention is focused in each region as we generate the tokens:
+
+![Image Captioning: Attention Focus](./pics/attention_caption.png)
+
+The CNN encoder is a VGG network and the state compressed representations are created using the feature map of the last convolutional layer: the map is `14 x 14 x 512`, i.e., we have `512` feature column vectors, each of size `196 = 14*14`. This is the context representation: a `196 x 512` matrix.
+
+![Image Captioning: Context](./pics/image_caption_context.png)
+
+The `512` feature vectors are passed to an RNN decoder composed of LSTMs that works with attention: scores are computed for the whole matrix and words are generated one by one.
+
+![Image Captioning: RNN with attention](./pics/image_caption_model_RNN.png)
+
+### 7.9 Other Attention Methods: Attention is All You Need - The Transformer
+
+This section focuses on the popular Google paper:
+
+[Attention Is All You Need](https://arxiv.org/abs/1706.03762)
+
+It can be found in
+
+`literature/Vaswani_Attention_2017.pdf`
+
+The paper presented significant advances in architectures that use attention mechanisms in sequence-to-sequence models; they completely removed RNNs and worked only with attention mechanisms. The result is a new architecture type or model: **the Transformer**. The transformer is better than anything seen before in sequence-to-sequence models, basically because the information flow path lengths are reduced.
+
+Until now, we've seen how to apply attention in the decoder; the transformer uses attention in both the encoder and the decoder. Altogether, three attention mechanisms are used, which are implemented as multiplicative attention mechanisms.
+
+The transformer has a stack of encoder-decoder pairs, the paper proposes to use 6 pairs.
+
+A practical difference for transformers is that the entire sequence is processed all at once: we don't pass the token items one by one, instead we pass them all together. However, we can parallelize it and produce the target tokens separately, too. Note that **parallelization is not possible with RNNs, because we need to pass the tokens one after the other, sequentially!**
+
+In the transformer, we have also an encoder and a decoder, but instead of RNNs, we have **self-attention** and **fully connected layers**. The concept of **self-attention** refers to the fact that the model pays attention to different parts of the processed sequence as its items are being handled; interestingly, it can pay attention to items before and after the item that is being processed. 
+
+Self-attention appears in the encoder (it works on the input or source sequence) and in the decoder (it works on the output or target sequence).
+
+![Transformer Architecture: Overview](./pics/transformer_overview.png)
+
+The encoder of the transformer has:
+
+- Self-attention which focuses on the important parts of the input sequence as its items are processed all at once.
+- A fully connected layer.
+
+The decoder of the transformer has:
+
+- Self-attention which focuses on the previous decoder outputs.
+- An attention mechanism which focuses on the relevant parts of the encoded input sequence.
+- A fully connected layer.
+
+![Transformer Architecture](./pics/transformer_architecture.png)
+
+Further explanations:
+
+- [Lecture on Transformers by Lukasz Kaiser, Co-Author of Attention Is All You Need](https://www.youtube.com/watch?v=rBCqOTEfxvg)
+- [Yannic Kilcher: Attention Is All You Need](https://www.youtube.com/watch?v=iDulhoQ2pro)
+
+### 7.10 The Transformer and Self-Attention
+
+Recall that with RNNs we compute hidden state vectors of the word embeddings. Now we don't have those hidden state vectors, instead we transform the embeddings with three separate fully connected layers: **Query, Keys, Values**. In practice, that consists in a matrix multiplication or mapping. The weights of the matrices are learnt.
+
+![Transformer Architecture: Queries, Keys, Values](./pics/transformer_QKV.png)
+
+The **Values** and **Keys** layers are applied to all the tokens in the sequence.
+
+The **Queries** layer is applied to the word token vector we want to compare against in the complete sequence.
+
+Thus, if we have a sequence of `N` items, we obtain:
+
+- 1 Query vector,
+- `N` Key vectors,
+- `N` Value vectors.
+
+Then, dot product is applied between the Query vector and all the Key vectors and softmax applied. That means we find the Query-Key pair which is most similar. These are our scores! Side note: the dot product is scaled by the square root of the vector length `d_k`.
+
+Then, all the Value vectors are summed after being weighted by their score. That yields the context vector.
+
+![Transformer Architecture: Self-Attention](./pics/transformer_sef_attention.png)
+
+If we have the context vector and the embedding vector, we can continue as before.
+
+The key takeaway is that we obtain the context vector following the explained self-attention scheme that works with the Query, Keys and Values layer.
+
+### 7.11 Attention Notebook
+
+This is a very simple notebook in which the context vector is computed multiplicative attention using numpy. Nothing really interesting, just matrix multiplications.
 
 ## 8. Image Captioning
+
+Read Section 7.8.
+
+This section focuses on the paper mentioned in that section:
+
+[Show, Attend and Tell: Neural Image Caption Generation with Visual Attention](https://arxiv.org/pdf/1502.03044.pdf)
+
+It can be found in
+
+`literature/XuBengio_ImageCaption_Attention_2016.pdf`
+
+The work presented a state-of-the-art image captioning system, trained on the [COCO dataset](https://cocodataset.org/#home). The COCO dataset has 200k images labelled with ground truth 5 captions; the images are also labelled for object detection and segmentation. Note that each image could have several image captions as ground truth.
+
+
 
 
 ## 9. Project: Image Captioning

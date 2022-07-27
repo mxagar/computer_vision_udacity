@@ -62,3 +62,5 @@ BahdanauBengio_AttentionTranslation_2016.pdf
 
 XuBengio_ImageCaption_Attention_2016.pdf
 	Image captioning with attention.
+
+WuHengel_VisualQuestionAnswering_2016.pdfTeneyHengel_VisualQuestionAnswering_2017.pdfYeungFeiFei_VideoLabelling_2017.pdfYuXu_VideoCaptioning_2016.pdfAndersonZhang_ImageCaptioning_2018.pdf
