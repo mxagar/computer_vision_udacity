@@ -64,3 +64,9 @@ XuBengio_ImageCaption_Attention_2016.pdf
 	Image captioning with attention.
 
 WuHengel_VisualQuestionAnswering_2016.pdfTeneyHengel_VisualQuestionAnswering_2017.pdfYeungFeiFei_VideoLabelling_2017.pdfYuXu_VideoCaptioning_2016.pdfAndersonZhang_ImageCaptioning_2018.pdf
+
+LinDollar_COCO_2015.pdf
+	COCO Dataset: Common Objects in Context.
+	Microsoft.
+
+ZeilerFergus_VisualizingDLNetworks_2013.pdfSzegedy_InceptionGoogleNetV3_2015.pdfSpringenbergRiedmiller_GuidedBackpropagation_2015.pdfSimonyanZisserman_VGG_2014.pdfLowe_SIFT_2004.pdfLeCun_LeNet_1998.pdfKrizhevskySutskeverHinton_AlexNet_2012.pdfHuagWeinberger_DenseNet_2018.pdfHeZhangRenSun_ResNet_2015.pdf

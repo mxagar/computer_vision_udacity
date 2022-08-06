@@ -1866,9 +1866,9 @@ Attention is probably one of the most important topics in Deep Learning in the l
 
 Motivation: Human perception does not process the entire scene at once; instead, humans focus attention selectively, acquire more information if required guiding the eye, and combine information from different fixations.
 
-Attention tries to mimic that: sequential integration of processed information pieces that belong to different parts of the input. That is achieved with **Transformers**. The original paper is in the `literature/` folder, and linked here: [Attention Is All You Need](https://arxiv.org/abs/1706.03762).
+Attention tries to mimic that: sequential integration of processed information pieces that belong to different parts of the input. That can be achieved with a combination of CNNs and RNNs, and in the last years, a new architecture that uses attention without RNNs has appeared: the **Transformers**. The original paper is in the `literature/` folder, and linked here: [Attention Is All You Need](https://arxiv.org/abs/1706.03762).
 
-Attention was a huge step in sequence-to-sequence models, like the machine translation models. The overperformed anything that we had beforehand.
+Attention was a huge step in sequence-to-sequence models, like the machine translation models. They overperformed anything that we had beforehand.
 
 ### 7.1 Sequence to Sequence Models
 
@@ -1888,7 +1888,7 @@ Sequence-to-sequence models work under the hood with an encoder-decoder architec
 
 - The encoder takes the input and processes it to a state or context representation. That processing is often a compression or a summarization.
 - That context or state representation is a vector of fixed sized.
-- The state or context representation is processed by the decoder to generate the output. That processing is often and expansion.
+- The state or context representation is processed by the decoder to generate the output. That processing is often an expansion.
 
 If we use RNN cells as encoders and decoders, they'll have internal loops, because they use their history/memory to produce their outputs. If we input sentences, tokens are passed as sequences, one token after the other. That is true for both the encoder as well as the decoder: the decoder inputs its output tokens to itself.
 
@@ -2010,6 +2010,11 @@ Questions:
 - How do we know when to finish really?
 - Does the number of output/translated words/tokens need to be the same as in the orginal/input sentence?
 
+Answer:
+
+I asked that question in the forum, but it wasn't answered correctly, probably because the question wasn't clear enough. I know think that the answer is very simple, and it is answered in the next section 8: there are two special token which indicate when a sentence starts and ends: `<start>, <end>`. Therefore, I understand that we can get an output of `<end>`, so the sequence ends.
+
+
 ### 7.7 Additive or Bahdanau Attention
 
 Additive or Bahdenau attention is very similar to the third type of score computation in the multiplicative attention approach called *concat*; in the *concat* score computation hidden state vectors are concatenated and passed through a fully connected layer (i.e., they are multiplied by a weight matrix). In Bahdenau, instead of concatenating, we sum both after applying specific weight matrices in each of them.
@@ -2124,7 +2129,7 @@ This is a very simple notebook in which the context vector is computed multiplic
 
 ## 8. Image Captioning
 
-Read Section 7.8.
+Read Section 7.8. In contrast to section 7.8 few to none new concepts are introduced here. This section is an introduction to the module project.
 
 This section focuses on the paper mentioned in that section:
 
@@ -2134,9 +2139,85 @@ It can be found in
 
 `literature/XuBengio_ImageCaption_Attention_2016.pdf`
 
-The work presented a state-of-the-art image captioning system, trained on the [COCO dataset](https://cocodataset.org/#home). The COCO dataset has 200k images labelled with ground truth 5 captions; the images are also labelled for object detection and segmentation. Note that each image could have several image captions as ground truth.
+The work presented a state-of-the-art image captioning system, trained on the [COCO dataset](https://cocodataset.org/#home). The COCO dataset has 200k images labelled with ground truth 5 captions; the images are also labelled for object detection and segmentation. There are 80 object/thing categories (e.g., person, chair, etc.) and 91 stuff categories (e.g., grass, wall, etc.). There are also 250k people with keypoints.
 
+The original paper in which the COCO dataset was presented: `literature/LinDollar_COCO_2015.pdf`.
 
+We can explore the COCO dataset here: [Explore COCO](https://cocodataset.org/#explore). We can select several objects and images that contain them are shown with all their annotations: 5 captions, segmentation, etc.
+
+Summary of the topics treated in the section:
+
+- Parts of the encoder
+- Text tokenization
+- RNN training
+- Video captioning
+
+### Parts of the Encoder
+
+We take a pre-trained CNN (VGG or ResNet), remove its final fully connected layers and use it to extract features; this our encoder. Then, these features are passed through an untrained fully connected layer which generates the feature vectors with the correct embedding size.
+
+![Image Captioning: CNN and RNN architecture](./pics/CNN_RNN_caption_encoder.png)
+
+### Text Tokenization
+
+Tokens are symbols with a distinct meaning in a sentence, usually not splitable anymore; for instance a word is a token, or punctuation symbol can be a token, too.
+
+When we tokenize a text, we produce a sequence of tokens that composes it.
+
+Then, each token is assigned a unique identification integer; all integer-token pairs compose the vocabulary.
+
+We have too additional special tokens, which denote the start and the end of a sequence: `<start>`, `<end>`.
+
+With embeddings, the integer space can be transformed to a more compact vector space. In those vector spaces, algebraic operations with words are possible.
+
+![Tokenizing Captions](./pics/tokenizing_captions.png)
+
+There are several options for tokenizing, we can simply use `split()` or apply more sophisticated libraries such as [NLTK](https://www.nltk.org/api/nltk.tokenize.html).
+
+```python
+# Built-in string split: it separates in white spaces by default
+text = "Dr. Smith arrived late."
+word = text.split() # ['Dr.', 'Smith', 'arrived', 'late.']
+
+# More meaningful word tokenization
+from nlt.tokenize import word_tokenize
+words = word_tokenize(text) # ['Dr.', 'Smith', 'arrived', 'late', '.']
+
+# Sentence splits or tokenization
+from nlt.tokenize import sent_tokenize
+text = "Dr. Smith arrived late. However, the conference hadn't started yet."
+words = sent_tokenize(text)
+# ['Dr. Smith arrived late.',
+#  'However, the conference hadn't started yet.']
+```
+
+### RNN Training
+
+The RNN part of the image captioning model is the decode; it will be composed of LSTMs and linear layers. The linear layers map the output of the LSTMs to tokens.
+
+The decoder gets the context or state matrix created after passing the feature vectors through the embedding layer.
+
+Then, it starts to sequentially produce word tokens:
+
+- First, it should produce the token `<start>`.
+- Then, we take the last produced token and the last hidden state (memory). Using attention to weight the entire context matrix, a new token is produced.
+- The process repeats until the produced token is `<end>`.
+
+Note that the model usually produces probabilities for tokens. That means the model is identifying the most probable next word given the feature vectors.
+
+We can use batches of image-caption pairs during training.
+
+![RNN Training for Image Captioning](./pics/RNN_training_image_captioning.png)
+
+### Video Captioning
+
+A very similar model can be used for image captioning.
+
+For a video, we take a sequence of frames and pass them through the decoder. That produces a series of feature vectors of context matrices. All of them are averaged to form a unique mean state of feature vector, which is passed to the decoder to start generating tokens as with an image.
+
+Of course, the training and the video captions are different, but the idea is the same.
+
+![Video Captioning](./pics/video_captioning.png)
 
 
 ## 9. Project: Image Captioning
