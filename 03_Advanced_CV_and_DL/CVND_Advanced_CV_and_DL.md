@@ -48,15 +48,69 @@ pip install mkl-service
 
 ## Overview of Contents
 
-1. [Advanced CNN Architectures]()
-2. [YOLO: You Only Look Once]()
-3. [Recursive Neural Networks (RNN)]()
-4. [Long Short-Term Memory Networks (LSTM)]()
-5. [Implementation of RNNs and LSTMs]()
-6. [Hyperparameters]()
-7. [Attention Mechanisms]()
-8. [Image Captioning]()
-9. [Project: Image Captioning]()
+1. [Advanced CNN Architectures](#1.-Advanced-CNN-Architectures)
+	- 1.1 Object Detection: Localization
+	- 1.2 Bounding Boxes and Regression
+	- 1.3 Region Proposals: R-CNN
+	- 1.4 Fast R-CNN
+	- 1.5 Faster R-CNN
+		- Region Proposal Networks
+2. [YOLO: You Only Look Once](#2.-YOLO:-You-Only-Look-Once)
+	- 2.1 Sliding Windows
+	- 2.2 Grids insted of Sliding Windows
+		- Ground Truth Bounding Boxes
+	- 2.3 Intersection over Union (IoU) and Non-Maximal Supression
+		- Anchor Boxes
+	- 2.4 Final YOLO Algorithm
+3. [Recursive Neural Networks (RNN)](#3.-Recursive-Neural-Networks-(RNN))
+	- 3.1 Introduction and History
+	- 3.2 Applications of RNNs
+	- 3.3 Neural Networks Refresher: Feedforward, Backpropagation
+	- 3.4 Simple Recurrent Neural Networks (RNNs)
+	- 3.5 Backpropagation in Simple RNNs
+	- 3.6 From RNN cells to LSTM cells
+4. [Long Short-Term Memory Networks (LSTM)](#4.-Long-Short-Term-Memory-Networks-(LSTMs))
+	- 4.1 Usefulness of a RNN
+	- 4.2 Practical Intuition of What LSTMs Do
+	- 4.3 Architecture of an LSTM
+	- 4.4 Definition of an LSTM Cell in Pytorch
+	- 4.5 The Gates
+		- The Learn Gate
+		- The Forget Gate
+		- The Remember Gate
+		- The Use Gate or Output Gate
+		- Complete Architecture
+		- Gated Recurrent Units (GRUs)
+	- 4.6 Example: Part of Speech Tagging Notebook
+	- 4.7 Example: Character-Level LSTM (see next section)
+5. [Implementation of RNNs and LSTMs](#5.-Implementation-of-RNNs-and-LSTMs)
+	- 5.1 Example 1: RNN
+	- 5.2 Example 2: Character-Level LSTM
+6. [Hyperparameters](#6.-Hyperparameters)
+	- 6.1 Learning Rate
+	- 6.2 Mini-Batch Size
+	- 6.3 Number of Epochs
+	- 6.4 Number of Hidden Layers / Units
+	- 6.5 RNN Hyperparameters
+7. [Attention Mechanisms](#7.-Attention-Mechanisms)
+	- 7.1 Sequence to Sequence Models
+	- 7.2 Encoders and Decoders
+	- 7.3 Elective: Text Sentiment Analysis
+	- 7.4 Shortcomings of Sequence-to-Sequence Models and Attention Overview
+	- 7.5 Attention Encoder and Decoder
+	- 7.6 Bahdanau and Luong Attention: Introduction
+	- 7.7 Multiplicative or Luong Attention
+	- 7.8 Additive or Bahdanau Attention
+	- 7.9 Computer Vision Applications: Image Captioning
+	- 7.10 Other Attention Methods: Attention is All You Need - The Transformer
+	- 7.11 The Transformer and Self-Attention
+	- 7.12 Attention Notebook
+8. [Image Captioning](#8.-Image-Captioning)
+	- Parts of the Encoder
+	- Text Tokenization
+	- RNN Training
+	- Video Captioning
+9. [Project: Image Captioning](#9.-Project:-Image-Captioning)
 
 ## 1. Advanced CNN Architectures
 
@@ -651,6 +705,11 @@ lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=n_layers
 # We can add dropout layers on the outputs of each LSTM layer if we add the argument dropout=drop_p
 # drop_p needs to be non-zero; dropout layer is added in all layers except the last one.
 # Default: 0
+# Also, we can use argument batch_first=True (especially relevant when DataLoaders are used).
+# Then, we expect the input size:
+# (batch, seq, feature) instead of (seq, batch, feature)
+# Similarly, the output size will be
+# (batch, seq, out) instead of (seq, batch, out)
 
 # Make a sequence of 5 input vectors of 4 random values each
 # Ie., each vector is of dimension 4 (=input_dim)
@@ -1882,7 +1941,7 @@ Thus, many applications match this case:
 - Chatbots: trained with dialogue data.
 - Image captioning.
 
-### 7.1 Encoders and Decoders
+### 7.2 Encoders and Decoders
 
 Sequence-to-sequence models work under the hood with an encoder-decoder architecture:
 
@@ -1896,13 +1955,13 @@ If we use RNN cells as encoders and decoders, they'll have internal loops, becau
 
 Note that the encoder-decoder architecture doesn't need to be formed by RNNs cells only! It can consists of CNNs, too. That way, we can generate image captions! They idea is that we input an image to the CNN encoder, which creates a image representation vectors, which is then fed to a RNN decoder which composes a sentence.
 
-### 7.2 Elective: Text Sentiment Analysis
+### 7.3 Elective: Text Sentiment Analysis
 
 This section is covered in the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repostory with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity). There is also a forked DL exercise repo, too: [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch).
 
 The lectures and notes by Andrew Trask on Sentiment Analysis are in the module 2, Lesson 5: `02_Neural_Networks/`.
 
-### 7.3 Shortcomings of Sequence-to-Sequence Models and Attention Overview
+### 7.4 Shortcomings of Sequence-to-Sequence Models and Attention Overview
 
 Sequence-to-Sequence models that work with text or any other sequential data have an important shortcoming:
 
@@ -1924,7 +1983,7 @@ The **attention decoder** uses the matrix of stacked states to generate the sequ
 
 Also, note that the context matrix passed to the decoder might vary in size: its size depends on the length of the input sequence!
 
-### 7.4 Attention Encoder and Decoder
+### 7.5 Attention Encoder and Decoder
 
 Taking as example the machine translation application, the attention encoding and decoding works as follows:
 
@@ -1953,7 +2012,7 @@ Taking as example the machine translation application, the attention encoding an
 
 In summary, the encoder works as in sequence-to-sequence models without attention. However, the decoder works differently: it takes all the hidden states and selects where to focus at each time using the context vector.
 
-### 7.5 Bahdanau and Luong Attention: Introduction
+### 7.6 Bahdanau and Luong Attention: Introduction
 
 There are two types of attention: **additive and multiplicative attention**.
 
@@ -1976,7 +2035,7 @@ Once the scores are obtained, the final context vector is computed similarly, an
 
 Key takeaway: attention gives the ability to look at all the elements in the sequence each time, no matter how far away they are.
 
-### 7.6 Multiplicative or Luong Attention
+### 7.7 Multiplicative or Luong Attention
 
 We've seen that there are 3 types of scores in multiplicative attention; in the case of the dot score, it basically consists in performing the scalar product between the hidden state vector of the decoder and all the hidden state vectors stacked in a matrix of the encoder. That yields a scores vector of length equal to the number of items in the input sequence.
 
@@ -2015,7 +2074,7 @@ Answer:
 I asked that question in the forum, but it wasn't answered correctly, probably because the question wasn't clear enough. I know think that the answer is very simple, and it is answered in the next section 8: there are two special token which indicate when a sentence starts and ends: `<start>, <end>`. Therefore, I understand that we can get an output of `<end>`, so the sequence ends.
 
 
-### 7.7 Additive or Bahdanau Attention
+### 7.8 Additive or Bahdanau Attention
 
 Additive or Bahdenau attention is very similar to the third type of score computation in the multiplicative attention approach called *concat*; in the *concat* score computation hidden state vectors are concatenated and passed through a fully connected layer (i.e., they are multiplied by a weight matrix). In Bahdenau, instead of concatenating, we sum both after applying specific weight matrices in each of them.
 
@@ -2027,7 +2086,7 @@ This slide highlights the differences between mutiplicative-`concat` (Luong) and
 
 ![Multiplicative vs Additive Attention: Differences](./pics/bahdenau_vs_luong_concat.png)
 
-### 7.8 Computer Vision Applications: Image Captioning
+### 7.9 Computer Vision Applications: Image Captioning
 
 This section focuses on the following paper:
 
@@ -2055,7 +2114,7 @@ The `512` feature vectors are passed to an RNN decoder composed of LSTMs that wo
 
 ![Image Captioning: RNN with attention](./pics/image_caption_model_RNN.png)
 
-### 7.9 Other Attention Methods: Attention is All You Need - The Transformer
+### 7.10 Other Attention Methods: Attention is All You Need - The Transformer
 
 This section focuses on the popular Google paper:
 
@@ -2097,7 +2156,7 @@ Further explanations:
 - [Lecture on Transformers by Lukasz Kaiser, Co-Author of Attention Is All You Need](https://www.youtube.com/watch?v=rBCqOTEfxvg)
 - [Yannic Kilcher: Attention Is All You Need](https://www.youtube.com/watch?v=iDulhoQ2pro)
 
-### 7.10 The Transformer and Self-Attention
+### 7.11 The Transformer and Self-Attention
 
 Recall that with RNNs we compute hidden state vectors of the word embeddings. Now we don't have those hidden state vectors, instead we transform the embeddings with three separate fully connected layers: **Query, Keys, Values**. In practice, that consists in a matrix multiplication or mapping. The weights of the matrices are learnt.
 
@@ -2123,7 +2182,7 @@ If we have the context vector and the embedding vector, we can continue as befor
 
 The key takeaway is that we obtain the context vector following the explained self-attention scheme that works with the Query, Keys and Values layer.
 
-### 7.11 Attention Notebook
+### 7.12 Attention Notebook
 
 This is a very simple notebook in which the context vector is computed multiplicative attention using numpy. Nothing really interesting, just matrix multiplications.
 
