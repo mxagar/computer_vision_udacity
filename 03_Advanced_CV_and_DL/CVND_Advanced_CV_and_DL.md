@@ -112,6 +112,10 @@ pip install mkl-service
 	- Video Captioning
 9. [Project: Image Captioning](#9.-Project:-Image-Captioning)
 
+## Overview of Project Notebooks
+
+
+
 ## 1. Advanced CNN Architectures
 
 Common CNN architectures defined so far apply convolutional layers to an image with an object to obtain a feature vector that is processed by fully connected layer to yield class probabilities.
