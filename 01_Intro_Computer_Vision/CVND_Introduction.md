@@ -2764,7 +2764,7 @@ Some interesting links:
 
 ### Important Learnings
 
-- Convolutional ffilter should be odd-sized to have an anchor pixel and prevent aliasing
+- Convolutional filter should be odd-sized to have an anchor pixel and prevent aliasing
 - It is better to use 3x3 filters than 5x5 filters, because:
 	- 3x3 = 9, 5x5 = 25; 3x3 is faster because it has less parameters
 	- Stacking 2 conv layers of 3x3 is equivalent to a conv layer with 5x5
