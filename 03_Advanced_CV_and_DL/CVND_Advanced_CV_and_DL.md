@@ -331,7 +331,7 @@ The **Intersection over the union** between two bounding boxesis computed as fol
 4. Remove all bounding boxes which have a high IoU value, e.g., `IoU >= iou_thres = 0.4`.
 5. Repeat from step 2 using the cells that are remaining.
 
-Note that in case of oveerlap, this algorithm would not work, since the overlapping object would default to one.
+Note that in case of overlap, this algorithm would not work, since the overlapping object would default to one.
 
 In order to work with overlapping objects, we use **anchor boxes**.
 
