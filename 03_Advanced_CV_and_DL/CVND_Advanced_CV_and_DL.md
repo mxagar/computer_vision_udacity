@@ -173,11 +173,11 @@ An option would be to have `w_c = w_r = 0.5`; however, it is usually considered 
 
 Another challenge in object detection is that we have a variable number of outputs; we don't know the exact number of boxes / objects in the image beforehand. A naive approach would consist in sweeping a window in the image to analyze many cropped image patches, however, that is very expensive.
 
-Instead, **region proposals** were introduced: tradictional image processing techniques are used to identify regions that:
+Instead, **region proposals** were introduced: traditional image processing techniques are used to identify regions that:
 
 - have many edges
 - have same texture
-- are enclosed by teh same boundary
+- are enclosed by the same boundary
 - etc.
 
 Thus, with region proposal algorithms we get a set of possible object regions, aka **Regions of Interest (ROI**); many are noise, but the objects will be found there, too!
@@ -200,7 +200,7 @@ Then, each ROI is warped to a fixed size using **ROI pooling** so that it can be
 
 **ROI pooling** takes in a rectangular region of any size, performs a maxpooling operation on that region in pieces such that the output is a fixed shape.
 
-Nice animation of how ROI pooling works from [deppsense.ai](https://blog.deepsense.ai/region-of-interest-pooling-explained/):
+Nice animation of how ROI pooling works from [deepsense.ai](https://blog.deepsense.ai/region-of-interest-pooling-explained/):
 
 ![ROI pooling](./pics/roi_pooling.gif)
 
@@ -231,7 +231,7 @@ The basic principle is as follows:
 - `k` anchor boxes are applied on each window. These anchor boxes are pre-defined boxes with different aspect ratios.
 - For each `k` boxes in each window, the probability of it containing an object is measured. If it's higher than a threshold, the anchor box is suggested as a ROI.
 
-During training, the ground truth is given by the real boudning box: if the suggested ROI overlaps considerably with a true bounding box, the suggestion is correct.
+During training, the ground truth is given by the real bounding box: if the suggested ROI overlaps considerably with a true bounding box, the suggestion is correct.
 
 Very interesting link on the topic: [Deep Learning for Object Detection: A Comprehensive Review](https://towardsdatascience.com/deep-learning-for-object-detection-a-comprehensive-review-73930816d8d9)
 
