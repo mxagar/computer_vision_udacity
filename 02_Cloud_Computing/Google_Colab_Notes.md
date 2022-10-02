@@ -14,6 +14,7 @@ Overview of Contents:
     - [Download files from Colab environment to desktop](#download-files-from-colab-environment-to-desktop)
     - [Mount Google Drive in Colab environment](#mount-google-drive-in-colab-environment)
     - [Installing libraries that are not in Colab](#installing-libraries-that-are-not-in-colab)
+    - [Download files to Colab environment](#download-files-to-colab-environment)
     - [Github integration](#github-integration)
     - [Links](#links)
 
@@ -36,7 +37,9 @@ Quick start:
 - When we create a new notebook, it's not connected to a VM, we need to first run something
 - Notebooks appear in Google Drive: `Colab Notebooks` 
 - We can share notebooks: Up-right, `Share`
-
+- Storage in the Colab environment is temporary
+  - If we restart the runtime, the files persist
+  - If we change the runtime, the files are removed!
 
 Change GPU/CPU, select standard/high-end memory, etc
 
@@ -164,6 +167,29 @@ import pydot
 # https://scitools.org.uk/cartopy/docs/latest/
 !pip install cartopy
 import cartopy
+```
+
+### Download files to Colab environment
+
+We can use `wget` and `unzip`.
+
+See [How To Use Wget to Download Files and Interact with REST APIs](https://www.digitalocean.com/community/tutorials/how-to-use-wget-to-download-files-and-interact-with-rest-apis).
+
+```python
+# wget options
+# -O output filename
+!wget -O jquery.min.js https://code.jquery.com/jquery-3.6.0.min.js
+# -P output directory
+!mkdir Downloads
+!wget -P Downloads/  https://code.jquery.com/jquery-3.6.0.min.js
+# Show progress
+!wget -q --show-progress https://code.jquery.com/jquery-3.6.0.min.js 
+
+# Unzip
+# -q: quiet, less output
+!unzip -q filename.zip
+# Unzip to directory
+!unzip filename.zip -d /path/to/directory
 ```
 
 ### Github integration
