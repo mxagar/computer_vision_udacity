@@ -631,7 +631,7 @@ The **4 interconnected gates** inside the LSTM cell are:
 - Forget gate: useless parts of previous long-term memory are forgotten, creating a lighter long-term memory
 - Learn gate: previous short-term memory and current event are learned
 - Remember gate: we mix the light long-term memory with forgotten parts and the learned information to form the new long-term memory
-- Use gate: similarly, we mix the light long-term memory with forgotten parts and the learned information to form the new short-term memory
+- Use gate: similarly, we mix the light long-term memory with forgotten parts and the learned information to form the new short-term memory.
 
 ![LSTM gates](./pics/LSTM_gates.png)
 
@@ -823,7 +823,7 @@ Important notes:
 
 An alternative to LSTMs are the Gated Recurrent Units (GRUs), which appeared later. They simplify the recurrent cell while achieving similar performances.
 
-[Gated Recurrect Units (GRU)](http://www.cs.toronto.edu/~guerzhoy/321/lec/W09/rnn_gated.pdf)
+[Gated Recurrent Units (GRU)](http://www.cs.toronto.edu/~guerzhoy/321/lec/W09/rnn_gated.pdf)
 
 ![Gated Recurrent Units, GRU](./pics/gru.png)
 
@@ -1875,13 +1875,13 @@ If we give the model too much capacity than *enough* (i.e., more hidden units an
 
 Heuristic guidelines:
 
-- If the training loss decreases of he training accuracy increases, but the validation has plateaued or does the opposite, decrease capacity or use dropout.
+- If the training loss decreases or the training accuracy increases, but the validation has plateaued or does the opposite, decrease capacity or use dropout.
 - If the validation error doesn't improve, keep adding capacity until it starts to improve.
 - Having a little more capacity than optimum is OK.
 - Having more units in the first hidden layer than the number of inputs has been observed to be beneficial.
 - Number of layers (Karpathy's recommendations):
 	- 3-layer networks often outperform 2-layer ones, but going deeper (4,5,6-layers) doesn't help much.
-	- BUT: in CNNs going deeps is necessary for a good recognition system! Having at least 10 layers is often a must.
+	- BUT: in CNNs going deep is necessary for a good recognition system! Having at least 10 layers is often a must.
 
 
 Interesting links:
