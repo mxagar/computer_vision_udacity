@@ -1966,7 +1966,7 @@ If we use RNN cells as encoders and decoders, they'll have internal loops, becau
 
 ![Encoder-Decoder](./pics/encoder_decoder_sequences.png)
 
-Note that the encoder-decoder architecture doesn't need to be formed by RNNs cells only! It can consists of CNNs, too. That way, we can generate image captions! They idea is that we input an image to the CNN encoder, which creates a image representation vectors, which is then fed to a RNN decoder which composes a sentence.
+Note that the encoder-decoder architecture doesn't need to be formed by RNNs cells only! It can consists of CNNs, too. That way, we can generate image captions! They idea is that we input an image to the CNN encoder, which creates image representation vectors, which is then fed to a RNN decoder which composes a sentence.
 
 ### 7.3 Elective: Text Sentiment Analysis
 
