@@ -2291,7 +2291,6 @@ Of course, the training and the video captions are different, but the idea is th
 
 ![Video Captioning](./pics/video_captioning.png)
 
-
 ## 9. Project: Image Captioning
 
 See project repository: [image_captioning](https://github.com/mxagar/image_captioning).
