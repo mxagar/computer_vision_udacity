@@ -4,10 +4,10 @@ These are my personal notes taken while following the [Udacity Computer Vision N
 
 The nanodegree is composed of these modules:
 
-1. Introduction to Computer Vision
-2. Cloud Computing (Optional)
-3. Advanced Computer Vision and Deep Learning
-4. Object Tracking and Localization
+1. [Introduction to Computer Vision](01_Intro_Computer_Vision)
+2. [Cloud Computing (Optional)](02_Cloud_Computing)
+3. [Advanced Computer Vision and Deep Learning](03_Advanced_CV_and_DL)
+4. [Object Tracking and Localization](04_Object_Tracking_Localization)
 
 Each module has a folder with its respective notes; **you need to go to each module folder and follow the Markdown file in them**.
 
