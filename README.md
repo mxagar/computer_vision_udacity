@@ -9,7 +9,7 @@ The nanodegree is composed of these modules:
 3. Advanced Computer Vision and Deep Learning
 4. Object Tracking and Localization
 
-Each module has a folder with its respective notes; you need to go to each folder and follow the Markdown file in them.
+Each module has a folder with its respective notes; **you need to go to each module folder and follow the Markdown file in them**.
 
 Additionally, note that:
 
@@ -23,9 +23,9 @@ Additionally, note that:
 
 Udacity requires the submission of a project for each module; these are the repositories of the projects I submitted:
 
-1. - Facial Keypoint Detection with Deep Convolutional Neural Networks (CNNs): [Github](https://github.com/mxagar/P1_Facial_Keypoints).
-2. Image Captioning: Image Description Text Generator Combining CNNs and RNNs: [Github](https://github.com/mxagar/image_captioning).
-3. SLAM project: []().
+1. Facial Keypoint Detection with Deep Convolutional Neural Networks (CNNs): [P1_Facial_Keypoints](https://github.com/mxagar/P1_Facial_Keypoints).
+2. Image Captioning: Image Description Text Generator Combining CNNs and RNNs: [image_captioning](https://github.com/mxagar/image_captioning).
+3. SLAM project: [slam_project](#).
 
 ## Practical Installation Notes
 
@@ -38,7 +38,8 @@ conda activate cvnd
 conda install pytorch torchvision -c pytorch
 conda install pip
 
-# Go to the folder where the Udacity DL exercises are cloned, after forking the original repo
+# Go to the folder where the Udacity DL exercises are cloned/forked,
+# after forking the original repo
 cd ~/git_repositories/CVND_Exercises
 pip install -r requirements.txt
 ```
