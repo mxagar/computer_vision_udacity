@@ -2,25 +2,34 @@
 
 These are my personal notes taken while following the [Udacity Computer Vision Nanodegree](https://www.udacity.com/course/computer-vision-nanodegree--nd891).
 
-The nanodegree is composed of six modules:
+The nanodegree is composed of these modules:
 
 1. Introduction to Computer Vision
 2. Cloud Computing (Optional)
 3. Advanced Computer Vision and Deep Learning
 4. Object Tracking and Localization
-5. Extra Topics: C++ Programming
 
-Each module has a folder with its respective notes.
+Each module has a folder with its respective notes; you need to go to each folder and follow the Markdown file in them.
 
 Additionally, note that:
-- I made many hand-written nortes, which I will scan and push to this repostory.
-- I forked the Udacity repositors for the exercises; all the material and  notebooks are there:
+
+- I have also notes on the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101) in my repository [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity); that MOOC is strongly related and has complementary material. I have many hand-written notes in [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity) related to this repository, too.
+- The exercises are commented in the Markdown files and linked to their location; most of the exercises are located in other repositories, originally forked from Udacity and extended/completed by me:
 	- [CVND_Exercises](https://github.com/mxagar/CVND_Exercises)
 	- [DL_PyTorch](https://github.com/mxagar/DL_PyTorch)
+	- [CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises)
+
+## Projects
+
+Udacity requires the submission of a project for each module; these are the repositories of the projects I submitted:
+
+1. - Facial Keypoint Detection with Deep Convolutional Neural Networks (CNNs): [Github](https://github.com/mxagar/P1_Facial_Keypoints).
+2. Image Captioning: Image Description Text Generator Combining CNNs and RNNs: [Github](https://github.com/mxagar/image_captioning).
+3. SLAM project: []().
 
 ## Practical Installation Notes
 
-I basically followed the installation & setup guide from [CVND_Exercises](https://github.com/mxagar/CVND_Exercises), which can be summarized with the following commands:
+You need to follow the installation & setup guide from [CVND_Exercises](https://github.com/mxagar/CVND_Exercises), which can be summarized with the following commands:
 
 ```bash
 # Create new conda environment to be used for the nanodegree
@@ -28,16 +37,15 @@ conda create -n cvnd python=3.6
 conda activate cvnd
 conda install pytorch torchvision -c pytorch
 conda install pip
-#conda install -c conda-forge jupyterlab
+
 # Go to the folder where the Udacity DL exercises are cloned, after forking the original repo
 cd ~/git_repositories/CVND_Exercises
 pip install -r requirements.txt
-# I had some issues with numpy and torch
-pip uninstall numpy
-pip uninstall mkl-service
-pip install numpy
-pip install mkl-service
 ```
 
-Mikel Sagardia, 2022.
+## Authorship
+
+Mikel Sagardia, 2022.  
 No guarantees.
+
+If you find this repository helpful and use it, please link to the original source.
