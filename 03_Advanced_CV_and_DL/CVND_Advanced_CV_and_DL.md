@@ -120,6 +120,7 @@ pip install mkl-service
     - [Video Captioning](#video-captioning)
   - [9. Project: Image Captioning](#9-project-image-captioning)
   - [10. Fully-Convolutional Neural Networks & Semantic Segmentation](#10-fully-convolutional-neural-networks--semantic-segmentation)
+  - [10.1 Properties of FCNs](#101-properties-of-fcns)
 
 ## Overview of Project Notebooks
 
@@ -2297,4 +2298,52 @@ See project repository: [image_captioning](https://github.com/mxagar/image_capti
 
 ## 10. Fully-Convolutional Neural Networks & Semantic Segmentation
 
-TBD.
+This section is elective.
+
+In a regular CNN, we apply convolutional filters and obtain a feature map which is passed to fully connected layer. That fully connected layer can classify the image.
+
+In a fully convolutional layer the feature map is passed to convolutional layers and we can expand the map to the image size again, performing pixel-wise inference.
+
+![Fully Convolutional Neural Networks](./pics/fully_conv_networks.png)
+
+Note that in CNNs the input image size is constrained to the size of the fully connected layer; however, in convolutional layers that size is not constrained, since convolutions don't care the input and output size! Thus, a Fully Convolutional Network (FCN) works with images of any size.
+
+Additionally, convolutional layers, unlike fully connected layers, preserve the spatial information!
+
+### 10.1 Properties of FCNs
+
+Structurally, FCNs have an encoder-decoder architecture:
+
+- The encoder extracts the features from the image.
+- The decoder upscales the features to an image of the same size as the input image; the pixel values in the output image classify the pixels or predict their values.
+
+![Encoder-Decoder Structure](./pics/fcn_encoder_decoder.png)
+
+Additionally, FCNs use 3 special techniques:
+
+1. 1x1 convolutions to replace fully connected layer.
+  - A 1x1 convoutional layer modifies the number of channels while maintaining the image size.
+2. Upsampling through the use of **transpose convolution**.
+  - Helpful animations: [conv_arithmetic](https://github.com/vdumoulin/conv_arithmetic).
+  - My notes on [Transpose Convolutions and Upsampling](https://github.com/mxagar/deep_learning_udacity/blob/main/03_CNN/DLND_CNNs.md#52-autoencoders-with-cnns-upsampling-for-the-decoder).
+3. Skip connections that allow the processing of multiple resolutions.
+  - Thanks to them, more precise segmentations are performed.
+  - Basically, the output from previous layers is added to current layer.
+  - Since different layers focus on more/less coarse features, combining them helps preserve multi-scale details.
+  - However, we need to be careful and avoid adding too much connections, because the model size explodes; for instance, if the VGG16 is used as encoder, the 3rd and 4th pooling layers are skipped/added.
+  
+![Skip connections](./pics/skip_connections.png)
+
+The typical architecture has the following properties:
+
+- It is common for the encoder to be a common CNN pre-trained on ImageNet: VGG16, ResNets, etc.
+- Between the encoder and the decoder we have a 1x1 convolution.
+- The decoder applies upscaling with transposed convolutions and a few skip connections are added.
+
+![Typical FCN Architecture](typical_fcn_architecture.jpg)
+
+### 10.2 Scene Understanding and Semantic Segmentation
+
+In the field of **Scene Understanding**, **Scemantic Segmentation** has become a popular technique. When we apply FCNs to do semantic segmentation, we get pixel-wise classifications of the image content. Top application: Self-Driving Cars.
+
+![Semantic Segmentation](./pics/semantic_segmentation_scene_understanding.jpg)
