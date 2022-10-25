@@ -14,12 +14,14 @@ This folder/file refers to the **third** module: **Advanced Computer Vision and 
 
 Note that:
 
-- I made many hand-written nortes, which I will scan and push to this repostory.
-- I forked the Udacity repositors for the exercises; all the material and notebooks are there:
+- I have also notes on the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101) in my repository [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity); that MOOC is strongly related and has complementary material. I have many hand-written notes in [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity) related to this repository, too.
+- The exercises are commented in the Markdown files and linked to their location; most of the exercises are located in other repositories, originally forked from Udacity and extended/completed by me:
 	- [CVND_Exercises](https://github.com/mxagar/CVND_Exercises)
 	- [DL_PyTorch](https://github.com/mxagar/DL_PyTorch)
-- The sections related to the Recurrent Neural Networks (RNNs) have a large overlap with the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repostory with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity). There is also a forked DL exercise repo, too:
+	- [CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises)
 	- [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch)
+- The sections related to the Recurrent Neural Networks (RNNs) have a large overlap with the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101).
+ 
 
 Mikel Sagardia, 2022.  
 No guarantees.
@@ -121,7 +123,9 @@ pip install mkl-service
     - [Video Captioning](#video-captioning)
   - [9. Project: Image Captioning](#9-project-image-captioning)
   - [10. Fully-Convolutional Neural Networks & Semantic Segmentation](#10-fully-convolutional-neural-networks--semantic-segmentation)
-  - [10.1 Properties of FCNs](#101-properties-of-fcns)
+    - [10.1 Properties of FCNs](#101-properties-of-fcns)
+    - [10.2 Scene Understanding and Semantic Segmentation](#102-scene-understanding-and-semantic-segmentation)
+    - [10.3 Example of an Architecture: FCN-8](#103-example-of-an-architecture-fcn-8)
 
 ## Overview of Project Notebooks
 

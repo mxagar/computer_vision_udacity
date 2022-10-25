@@ -18,6 +18,7 @@ Additionally, note that:
 	- [CVND_Exercises](https://github.com/mxagar/CVND_Exercises)
 	- [DL_PyTorch](https://github.com/mxagar/DL_PyTorch)
 	- [CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises)
+	- [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch)
 
 ## Projects
 
