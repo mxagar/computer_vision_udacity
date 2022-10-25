@@ -1,4 +1,4 @@
-# Udacity Computer Vision Nanodegree: Advanced CV and DL
+# Udacity Computer Vision Nanodegree: Object Tracking and Localization
 
 These are my personal notes taken while following the [Udacity Computer Vision Nanodegree](https://www.udacity.com/course/computer-vision-nanodegree--nd891).
 
@@ -49,4 +49,39 @@ pip install mkl-service
 ```
 
 ## Overview of Contents
+
+- [Udacity Computer Vision Nanodegree: Object Tracking and Localization](#udacity-computer-vision-nanodegree-object-tracking-and-localization)
+  - [Practical Installation Notes](#practical-installation-notes)
+  - [Overview of Contents](#overview-of-contents)
+  - [1. Introduction to Motion](#1-introduction-to-motion)
+  - [2. Robot Localization](#2-robot-localization)
+  - [3. Mini-Project: 2D Histogram Filter](#3-mini-project-2d-histogram-filter)
+  - [4. Introduction to Kalman Filters](#4-introduction-to-kalman-filters)
+  - [5. Representing State and Motion](#5-representing-state-and-motion)
+  - [6. Matrices and Transformation of State](#6-matrices-and-transformation-of-state)
+  - [7. Simultaneous Localization and Mapping](#7-simultaneous-localization-and-mapping)
+  - [8. Vehicle Motion Calculus (Optional)](#8-vehicle-motion-calculus-optional)
+  - [9. Project: Landmark Detection & Tracking (SLAM)](#9-project-landmark-detection--tracking-slam)
+
+## 1. Introduction to Motion
+
+
+
+## 2. Robot Localization
+
+## 3. Mini-Project: 2D Histogram Filter
+
+## 4. Introduction to Kalman Filters
+
+## 5. Representing State and Motion
+
+## 6. Matrices and Transformation of State
+
+## 7. Simultaneous Localization and Mapping
+
+## 8. Vehicle Motion Calculus (Optional)
+
+## 9. Project: Landmark Detection & Tracking (SLAM)
+
+See project repository: [slam_2d](https://github.com/mxagar/slam_2d).
 
