@@ -26,7 +26,7 @@ Udacity requires the submission of a project for each module; these are the repo
 
 1. Facial Keypoint Detection with Deep Convolutional Neural Networks (CNNs): [P1_Facial_Keypoints](https://github.com/mxagar/P1_Facial_Keypoints).
 2. Image Captioning: Image Description Text Generator Combining CNNs and RNNs: [image_captioning](https://github.com/mxagar/image_captioning).
-3. SLAM project: [slam_project](#).
+3. Landmark Detection & Tracking (SLAM): [slam_2d](https://github.com/mxagar/slam_2d).
 
 ## Practical Installation Notes
 
