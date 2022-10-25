@@ -2,13 +2,12 @@
 
 These are my personal notes taken while following the [Udacity Computer Vision Nanodegree](https://www.udacity.com/course/computer-vision-nanodegree--nd891).
 
-The nanodegree is composed of six modules:
+The nanodegree is composed of these modules:
 
 1. Introduction to Computer Vision
 2. Cloud Computing (Optional)
 3. Advanced Computer Vision and Deep Learning
 4. Object Tracking and Localization
-5. Extra Topics: C++ Programming
 
 Each module has a folder with its respective notes.
 This folder/file refers to the **third** module: **Advanced Computer Vision and Deep Learning**.
@@ -22,7 +21,7 @@ Note that:
 - The sections related to the Recurrent Neural Networks (RNNs) have a large overlap with the [Udacity Deep Learning Nanodegree](https://www.udacity.com/course/deep-learning-nanodegree--nd101), for which I have a repostory with notes, too: [deep_learning_udacity](https://github.com/mxagar/deep_learning_udacity). There is also a forked DL exercise repo, too:
 	- [deep-learning-v2-pytorch](https://github.com/mxagar/deep-learning-v2-pytorch)
 
-Mikel Sagardia, 2022.
+Mikel Sagardia, 2022.  
 No guarantees.
 
 ## Practical Installation Notes
@@ -36,9 +35,11 @@ conda activate cvnd
 conda install pytorch torchvision -c pytorch
 conda install pip
 #conda install -c conda-forge jupyterlab
+
 # Go to the folder where the Udacity DL exercises are cloned, after forking the original repo
 cd ~/git_repositories/CVND_Exercises
 pip install -r requirements.txt
+
 # I had some issues with numpy and torch
 pip uninstall numpy
 pip uninstall mkl-service
@@ -2344,6 +2345,75 @@ The typical architecture has the following properties:
 
 ### 10.2 Scene Understanding and Semantic Segmentation
 
-In the field of **Scene Understanding**, **Scemantic Segmentation** has become a popular technique. When we apply FCNs to do semantic segmentation, we get pixel-wise classifications of the image content. Top application: Self-Driving Cars.
+In the field of **Scene Understanding**, **Semantic Segmentation** has become a popular technique. When we apply FCNs to do semantic segmentation, we get pixel-wise classifications of the image content. Top application: Self-Driving Cars.
 
 ![Semantic Segmentation](./pics/semantic_segmentation_scene_understanding.jpg)
+
+Since the goal is to preserve spatial information and to convert it to classes, we could try a FCN that applies only convolutions without modifying the size of the image; however, that's very expensive. Instead, downsampling is performed with pooling and upsampling, e.g., with transpose convolutions.
+
+One approach in scene understanding is to train two decoders:
+
+- One segments the scene, i.e., it predicts pixel classes: road, people, traffic signs, etc.
+- The other predicts the depth/distance of the pixels.
+
+![Scene Understanding: Segmentation and Depth](./pics/scene_understanding.jpg)
+
+In order to measure the performance, the **Intersection over Union** metric is used:
+
+```
+IOU = intersection area between true and prediction / union area between true and prediction <= 1
+```
+
+Each class has its IOU; we can also use the mean across all classes.
+
+### 10.3 Example of an Architecture: FCN-8
+
+This section is a summary of the FCN8 paper
+
+  Fully Convolutional Networks for Semantic Segmentation, 2014
+  Jonathan Long, Evan Shelhamer, Trevor Darrell
+
+The paper is available in the folder `literature/`: `Long_FCN8_SemanticSegmentation_2014.pdf`.
+
+It seems this paper used FCNs for the first time to perform semantic segmentation? (It has 34k+ citations on Google Scholar).
+At least many FCN models are derived from the FCN8 architecture.
+
+The full architecture:
+
+![](./pics/fcn8_architecture.png)
+
+The **encoder** is the pre-trained VGG16.
+
+The **decoder** uses:
+
+- 1x1 convolutional layers that replacing fully connected scoring layers,
+- Transpose convolutions that upscale the feature maps to the original image size
+- Skip connections that take the output from encoder pooling outputs, transform their channel depth with 1x1 convolutions and fuse it outputs from the decoder layer, prior to upscaling with transpose convolutions.
+
+The 1x1 convolutional layers that replace fully connected scoring layers have this form:
+
+```python
+# input_size: number of input channels
+# num_classes: number of output channels; 
+# in the case of the last upscaling, thenumber of classes per pixel
+self.score = nn.Conv2d(in_channels=input_size, out_channels=num_classes, 1)
+```
+
+The [transpose convolution](https://pytorch.org/docs/stable/generated/torch.nn.ConvTranspose2d.html?highlight=convtranspose2d#torch.nn.ConvTranspose2d) in pytorch is achieved with `torch.nn.ConvTranspose2d`. The output is a 4D tensor:
+
+```python
+# Output size: (batch_size, original_height, original_width, num_classes)
+self.transpose = nn.ConvTranspose2d(in_channels=input_depth, out_channels=num_classes, kernel_size=3, stride=2)
+```
+
+The skip connections consist in adding element-wise the values in our tensors; to that end, the fused tensor must have the same 4D size! Usually a pooling output of the encoder is fused in the decoder:
+
+```python
+# The shapes of these two layers must be the same to add them
+input = input + pool_4
+# Why transpose???
+input = self.transpose(input)
+```
+
+The final output of the FCN architecture is a 4D image: (batch, class_channels, width, height). We have to reshape it to 2D, where each row represents a pixel and each column a class. Then, we use the cross-entropy loss.
+
