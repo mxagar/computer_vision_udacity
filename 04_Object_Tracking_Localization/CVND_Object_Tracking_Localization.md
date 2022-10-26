@@ -54,6 +54,8 @@ pip install mkl-service
   - [Practical Installation Notes](#practical-installation-notes)
   - [Overview of Contents](#overview-of-contents)
   - [1. Introduction to Motion](#1-introduction-to-motion)
+    - [1.1 Introduction to Optical Flow](#11-introduction-to-optical-flow)
+    - [1.2 Motion Vectors](#12-motion-vectors)
   - [2. Robot Localization](#2-robot-localization)
   - [3. Mini-Project: 2D Histogram Filter](#3-mini-project-2d-histogram-filter)
   - [4. Introduction to Kalman Filters](#4-introduction-to-kalman-filters)
@@ -65,7 +67,46 @@ pip install mkl-service
 
 ## 1. Introduction to Motion
 
+The goal of this module is to show pattern recognition techniques over time and space.
 
+We deep dive into field of **Localization**, with the following topics
+
+- Representing motion and tracking objects in a video
+- Uncertainty in robotic motion
+- A simple localization technique: Histogram Filter
+- Motion models and tracking the position of a self-driving car over time
+
+At the end of this module we work on a SLAM project: Simultaneous Localization and Mapping.
+
+### 1.1 Introduction to Optical Flow
+
+One way of capturing motion in a video consists in extracting features in the frames and observing how they change from frame to frame.
+
+**Optical Flow** works that way; it makes two assumptions:
+
+1. Pixel intensities stay consistent between frames.
+2. Neighboring pixels have similar motion.
+
+![Optical Flow: Assumptions](./pics/optical_flow_assumptions.jpg)
+
+Salient pixels are tracked, e.g., bright pixels or corners; tracking them provides information on
+
+- *how fast* the object is moving
+- and in what *direction*,
+
+so we are able to predict where it will be.
+
+Applications:
+
+- Hand gesture recognition
+- Tracking vehicle movement
+- Distinguish running vs. walking
+- Obstacle avoidance
+- Eye tracking
+- etc.
+
+### 1.2 Motion Vectors
+![Motion Vectors](./pics/motion_vectors.jpg)
 
 ## 2. Robot Localization
 
