@@ -233,6 +233,10 @@ tracker = cv2.TrackerTLD_create()
 tracker = cv2.TrackerMedianFlow_create()
 tracker.init(frame, roi)
 success, roi = tracker.update(frame)
+
+cv2.goodFeaturesToTrack(...)
+cv2.calcOpticalFlowPyrLK(...)
+
 ```
 
 ## Context: Image Representation
@@ -447,4 +451,73 @@ num_bins = 9
 win_size = (x_cells * cell_size[0] , y_cells * cell_size[1])
 hog = cv2.HOGDescriptor(win_size, block_size, block_stride, cell_size, num_bins)
 hog_descriptor = hog.compute(gray_image)
+```
+
+## Context: Optical Flow
+
+```python
+# We need to pass keypoints to track to the Optical Flow API
+# We use the Shi-Tomasi corner detector, similar to the Harris corner detector
+# We can use Harris or ORB instead, too
+# Parameters for Shi-Tomasi corner detection
+feature_params = dict( maxCorners = 10,
+                       qualityLevel = 0.2,
+                       minDistance = 5,
+                       blockSize = 5 )
+
+# Convert all frames to grayscale
+gray_1 = cv2.cvtColor(frame_1, cv2.COLOR_RGB2GRAY)
+gray_2 = cv2.cvtColor(frame_2, cv2.COLOR_RGB2GRAY)
+gray_3 = cv2.cvtColor(frame_3, cv2.COLOR_RGB2GRAY)
+
+# Take first frame and find corner points in it
+pts_1 = cv2.goodFeaturesToTrack(gray_1, mask = None, **feature_params)
+
+# Display the detected points
+plt.imshow(frame_1)
+for p in pts_1:
+    # plot x and y detected points
+    plt.plot(p[0][0], p[0][1], 'r.', markersize=15)
+
+# Parameters for Lucas-Kanade optical flow
+# winSize: size of the search window at each pyramid level
+# maxLevel: 0, pyramids are not used (single level), if set to 1, two levels are used, and so on
+# criteria: termination criteria of the iterative search algorithm
+lk_params = dict( winSize  = (5,5), 
+                  maxLevel = 2, 
+                  criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+
+# Calculate optical flow between first and second frame
+# The function implements a sparse iterative version
+# of the Lucas-Kanade optical flow in pyramids.
+# We pass: first image, next image, first points, parameters
+# We get:
+# - next points
+# - status/match: 1 if the flow for the corresponding features has been found, otherwise, it is set to 0.
+# - error values
+pts_2_of, match, err = cv2.calcOpticalFlowPyrLK(gray_1, gray_2, pts_1, None, **lk_params)
+
+# Select good matching points between the two image frames
+good_new = pts_2_of[match==1]
+good_old = pts_1[match==1]
+
+# Create a mask image for drawing (u,v) vectors on top of the second frame
+mask = np.zeros_like(frame_2)
+
+# Draw the lines between the matching points (these lines indicate motion vectors)
+for i,(new,old) in enumerate(zip(good_new,good_old)):
+    a,b = new.ravel()
+    c,d = old.ravel()
+    # draw points on the mask image
+    mask = cv2.circle(img=mask, center=(a,b), radius=5, color=(200), thickness=-1)
+    # draw motion vector as lines on the mask image
+    mask = cv2.line(img=mask, pt1=(a,b), pt2=(c,d), color=(200), thickness=3)
+    # add the line image and second frame together
+
+# Overlay mask
+composite_im = np.copy(frame_2)
+composite_im[mask!=0] = [0]
+
+# It doesn't seem to work that well; maybe the movement was too big
+plt.imshow(composite_im)
 ```
