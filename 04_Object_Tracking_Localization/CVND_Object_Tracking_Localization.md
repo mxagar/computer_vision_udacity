@@ -59,6 +59,8 @@ pip install mkl-service
     - [1.3 Brightness Consistency Assumption](#13-brightness-consistency-assumption)
     - [1.3 Optical Flow Notebook](#13-optical-flow-notebook)
   - [2. Robot Localization](#2-robot-localization)
+    - [2.1 Review of Probability](#21-review-of-probability)
+      - [Probability Distributions and Bayes' Rule](#probability-distributions-and-bayes-rule)
   - [3. Mini-Project: 2D Histogram Filter](#3-mini-project-2d-histogram-filter)
   - [4. Introduction to Kalman Filters](#4-introduction-to-kalman-filters)
   - [5. Representing State and Motion](#5-representing-state-and-motion)
@@ -224,6 +226,41 @@ plt.imshow(composite_im)
 ```
 
 ## 2. Robot Localization
+
+### 2.1 Review of Probability
+
+![Review of Probability](./pics/Probability.jpg)
+
+#### Probability Distributions and Bayes' Rule
+
+The Bayes' rule:
+
+`P(A|B) = P(A) * P(B|A)/P(B)`
+
+- `P(A|B)`: probability of occurring event A given B is true; **posterior**.
+- `P(A)`, `P(B)`: probabilities of observing A or B without any conditions; `P(A)` is the **prior**.
+- `P(B|A)`: probability of occurring B given A is true.
+
+In many situations the event is fixed, so we omit `P(B)` and the rule becomes:
+
+`P(A|B) proportional to P(A) * P(B|A)`
+
+In other words, the posterior is proportional to the prior times the likelihood.
+
+We can model location vectors are probability distributions; the shape of the distribution tells us the most likely location values; i.e., peaks of higher density values denote most likely values.
+
+At the beginning, our distributions might be quite flat, but as we get more data/inputs, we can produce more meaningful distributions, i.e., distributions with more salient peaks. The Bayes' rule is the mathematical tool to achieve that.
+
+Practical interpretation of the Bayes' Rule: given an initial prediction, if we gather additional data (related to our prediction), we can improve the prediction.
+
+Example: we have GPS data of the car location; however, that location has an uncertainty region of 5m. If we collect data from more sensors, we can produce a better estimate of the car location by combining all sensor inputs.
+
+In the Bayesian framework, we have:
+
+- Prior: a prior probability distribution of an uncertain quantity (e.g., location); this is our belief before any measurement.
+- Posterior: updated probability distribution of the same quantity after some evidence, i.e., measurements.
+
+
 
 ## 3. Mini-Project: 2D Histogram Filter
 
