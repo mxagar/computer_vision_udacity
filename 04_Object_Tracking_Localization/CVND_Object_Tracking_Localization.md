@@ -61,6 +61,7 @@ pip install mkl-service
   - [2. Robot Localization](#2-robot-localization)
     - [2.1 Review of Probability](#21-review-of-probability)
       - [Probability Distributions and Bayes' Rule](#probability-distributions-and-bayes-rule)
+    - [2.2 Probabilistic Localization](#22-probabilistic-localization)
   - [3. Mini-Project: 2D Histogram Filter](#3-mini-project-2d-histogram-filter)
   - [4. Introduction to Kalman Filters](#4-introduction-to-kalman-filters)
   - [5. Representing State and Motion](#5-representing-state-and-motion)
@@ -260,9 +261,163 @@ In the Bayesian framework, we have:
 - Prior: a prior probability distribution of an uncertain quantity (e.g., location); this is our belief before any measurement.
 - Posterior: updated probability distribution of the same quantity after some evidence, i.e., measurements.
 
+### 2.2 Probabilistic Localization
 
+Let's consider a robot which is trying to find out where it is.
+
+- First, it doesn't know: belief probability distribution is flat.
+- It measures a door; since it knows the map, the location probability distribution changes: we have 3 bumps where door are; that's our posterior.
+- Then, the robot moves to the right: the probability distributions are shifted to the right, too, using a convolution. We shift the probability distribution because that is the map we think where the robot is; if the robot moves in a direction, we need to move our location map accordingly. A convolution is applied because we apply the uncertainty of the movement, i.e., we flatten the distribution according to the probability of moving correctly/wring.
+- It senses a door; Where it is? If we multiply the posterior with its convoluted we get the probability distribution of the location.
+
+![Probabilistic Localization](./pics/probabilistic_localization.jpg)
+
+### 2.3 Robot Localization Notebooks
+
+Exercise repository: [CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises).
+
+There are several notebooks in the folder: `4_2_Robot_Localization`.
+
+The final that summarizes it all is `9_1. Sense and Move, exercise.ipynb`.
+
+Basically, a **histogram filter** is built step by step in all the notebooks: 
+
+> Histogram filters decompose the state space into finitely many regions and represent the cumulative posterior for each region by a single probability value. When applied to finite spaces, they are called discrete Bayes filters; when applied to continuous spaces, they are known as histogram filters. [Probabilistic Robotics](https://calvinfeng.gitbook.io/probabilistic-robotics/basics/nonparametric-filters/01-histogram-filter)
+
+We have the following scenario:
+
+- A world composed by 5 cells which can be `red` / `green`.
+- We **have a map of the world**.
+- A robot which can **move** in the world and can **sense** the color of the cell it is in.
+- The world is cyclical: if we keep forward in the last cell we appear in the first.
+
+The **goal is: localize the robot in the world map as it moves and senses.**
+
+![Robot Sensing: Scenario](./pics/robot_sensing.png)
+
+The localization problem is solved with a sense-move cycle:
+
+1. First, the probability of the robot being in any cell is `1/5 = 0.2`: `p = [0.2, 0.2, 0.2, 0.2, 0.2]`. That is our first uninformative **initial belief or prior**, the one with the highest entropy (i.e., less possible information).
+2. Then, we **sense the cell color we're in**, e,g, `red`. Any measurement has a probability of being right (`pHit`) / wrong (`pMiss`). Thus, we update our localization probability map by multiplying to the previous probability values 
+  - `pHit` if the world-cell has the same color as the reading (`red`)
+  - `pMiss` if the world-cell has a different color than the reading (`green`)
+3. Then, we **move the robot a step size in a direction**, `1 right` Again, the movement is not perfect, we have an inaccuracy; as such, we define the probabilities of being exact (`pExact`), of undershooting (`pUndershoot`) and of overshooting (`pOvershoot`). The movement updates the localization probability map with a convolution: the distribution is shifted in the direction of the motion while applying the uncertainty of the movement. That yields a new updated posterior distribution!
+4. Then, we repeat 2-3 again indefinitely. After each cycle, i.e., after each `move()`, we have an updated **posterior**.
+
+![Robot Sensing: Scenario](./pics/sense-move.png)
+
+![Robot Sensing: Probability Localization](./pics/probabilistic_localization.jpg)
+
+Note that:
+
+- Every time we **measure** the **entropy decreases**; i.e., we have **gained information** of where the robot is. Thus, the localization distribution has more clear peaks.
+-  Every time we **move** the **entropy increases**; i.e., we have **lost information** of where the robot is. Thus, the localization distribution is flatter.
+- When we move in a direction, we basically shift our belief map in that direction with the robot; however, since the movement has an uncertainty, we need to account for it. That's why we use a convolution.
+
+The **entropy** is measured as: `- sum(p*ln(p))`.
+
+Case of maximum entropy: `p = [0.2, 0.2, 0.2, 0.2, 0.2] -> E = -5*0.2*ln(
+0.2) = 0.699`.
+
+All that is summarized in the following lines of code:
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+def display_map(grid, bar_width=1):
+    if(len(grid) > 0):
+        x_labels = range(len(grid))
+        plt.bar(x_labels, height=grid, width=bar_width, color='b')
+        plt.xlabel('Grid Cell')
+        plt.ylabel('Probability')
+        plt.ylim(0, 1) # range of 0-1 for probability values 
+        plt.title('Probability of the robot being at each cell in the grid')
+        plt.xticks(np.arange(min(x_labels), max(x_labels)+1, 1))
+        plt.show()
+    else:
+        print('Grid is empty')
+
+# INITIAL BELIEF: completely uncertain
+p = [0.2, 0.2, 0.2, 0.2, 0.2]
+# WORLD MAP: the color of each grid cell in the 1D world
+world=['green', 'red', 'red', 'green', 'green']
+# Measurement = Z, the sensor reading ('red' or 'green')
+measurements = ['red', 'red'] # sequence of mesurements
+pHit = 0.6 # the probability that it is sensing the color correctly
+pMiss = 0.2 # the probability that it is sensing the wrong color
+
+motions = [1,1] # sequence of movement steps to the right
+# Movement accuracy
+pExact = 0.8 # probability of moving correctly
+pOvershoot = 0.1
+pUndershoot = 0.1
+
+def sense(p, Z):
+    ''' Takes in a current probability distribution, p, and a sensor reading, Z.
+        Returns a *normalized* distribution after the sensor measurement has been made, q.
+        This should be accurate whether Z is 'red' or 'green'. '''
+    q=[]
+    # Loop through all grid cells
+    for i in range(len(p)):
+        # Check if the sensor reading is equal to the color of the grid cell
+        # if so, hit = 1
+        # if not, hit = 0
+        # Basically, we apply pHit in all map cells
+        # with the measurement value, pMiss in the rest
+        hit = (Z == world[i])
+        q.append(p[i] * (hit * pHit + (1-hit) * pMiss))
+        
+    # Normalize: divide all elements of q by the sum
+    # because the complete distribution should add up to 1
+    s = sum(q)
+    for i in range(len(p)):
+        q[i] = q[i] / s
+    return q
+
+
+def move(p, U):
+    q=[]
+    # Iterate through all values in p
+    # The localization probability map is shifted
+    # in the direction of motion and the accuracy
+    # of the movement is also applied.
+    # This is a CONVOLUTION of the previous p map
+    for i in range(len(p)):
+        # use the modulo operator to find the new location for a p value
+        # this finds an index that is shifted by the correct amount
+        index = (i-U) % len(p)
+        #nextIndex = (index+1) % len(p)
+        #prevIndex = (index-1) % len(p)
+        nextIndex = (i-U+1) % len(p)
+        prevIndex = (i-U-1) % len(p)
+        s = pExact * p[index]
+        s = s + pOvershoot  * p[nextIndex]
+        s = s + pUndershoot * p[prevIndex]
+        # append the correct, modified value of p to q
+        q.append(s)
+    return q
+
+# Compute the posterior distribution if the robot first senses red, then moves 
+# right one, then senses green, then moves right again, starting with a uniform prior distribution.
+# This loop is in reality valid for any sequence of measurements and motions
+for i in range(len(measurements)):
+    p = sense(p, measurements[i])
+    p = move(p, motions[i])
+# Print/display that distribution
+print(p)
+display_map(p, bar_width=0.9)
+```
 
 ## 3. Mini-Project: 2D Histogram Filter
+
+This section is about translating the previous toy example in from the 1D world to the 2D world.
+
+There are no videos / instructions, only the following self-assessed notebook:
+
+[CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_3_2D_Histogram_Filter`
+
+
 
 ## 4. Introduction to Kalman Filters
 
