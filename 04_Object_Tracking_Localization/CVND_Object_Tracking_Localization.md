@@ -62,6 +62,7 @@ pip install mkl-service
     - [2.1 Review of Probability](#21-review-of-probability)
       - [Probability Distributions and Bayes' Rule](#probability-distributions-and-bayes-rule)
     - [2.2 Probabilistic Localization](#22-probabilistic-localization)
+    - [2.3 Robot Localization Notebooks](#23-robot-localization-notebooks)
   - [3. Mini-Project: 2D Histogram Filter](#3-mini-project-2d-histogram-filter)
   - [4. Introduction to Kalman Filters](#4-introduction-to-kalman-filters)
   - [5. Representing State and Motion](#5-representing-state-and-motion)
@@ -248,7 +249,7 @@ In many situations the event is fixed, so we omit `P(B)` and the rule becomes:
 
 In other words, the posterior is proportional to the prior times the likelihood.
 
-We can model location vectors are probability distributions; the shape of the distribution tells us the most likely location values; i.e., peaks of higher density values denote most likely values.
+We can model location vectors as probability distributions; the shape of the distribution tells us the most likely location values; i.e., peaks of higher density values denote most likely values.
 
 At the beginning, our distributions might be quite flat, but as we get more data/inputs, we can produce more meaningful distributions, i.e., distributions with more salient peaks. The Bayes' rule is the mathematical tool to achieve that.
 
@@ -266,9 +267,9 @@ In the Bayesian framework, we have:
 Let's consider a robot which is trying to find out where it is.
 
 - First, it doesn't know: belief probability distribution is flat.
-- It measures a door; since it knows the map, the location probability distribution changes: we have 3 bumps where door are; that's our posterior.
-- Then, the robot moves to the right: the probability distributions are shifted to the right, too, using a convolution. We shift the probability distribution because that is the map we think where the robot is; if the robot moves in a direction, we need to move our location map accordingly. A convolution is applied because we apply the uncertainty of the movement, i.e., we flatten the distribution according to the probability of moving correctly/wring.
-- It senses a door; Where it is? If we multiply the posterior with its convoluted we get the probability distribution of the location.
+- It measures a door; since it knows the map, the location probability distribution changes: we have 3 bumps where doors are; that's our posterior: an updated belief of where the robot could be.
+- Then, the robot moves to the right: the probability distributions are shifted to the right, too, using a convolution. We shift the probability distribution because that is the map we think where the robot is; if the robot moves in a direction, we need to move our current location map accordingly. A convolution is applied because we apply the uncertainty of the movement, i.e., we flatten the distribution according to the probability of moving correctly/wrong.
+- The robot senses a door; where is it? If we multiply the posterior with its convoluted we get the probability distribution of the location.
 
 ![Probabilistic Localization](./pics/probabilistic_localization.jpg)
 
@@ -297,11 +298,11 @@ The **goal is: localize the robot in the world map as it moves and senses.**
 
 The localization problem is solved with a sense-move cycle:
 
-1. First, the probability of the robot being in any cell is `1/5 = 0.2`: `p = [0.2, 0.2, 0.2, 0.2, 0.2]`. That is our first uninformative **initial belief or prior**, the one with the highest entropy (i.e., less possible information).
+1. First, the probability of the robot being in any of the 5 cells is `1/5 = 0.2`: `p = [0.2, 0.2, 0.2, 0.2, 0.2]`. That is our first uninformative **initial belief or prior**, the one with the highest entropy (i.e., less possible information).
 2. Then, we **sense the cell color we're in**, e,g, `red`. Any measurement has a probability of being right (`pHit`) / wrong (`pMiss`). Thus, we update our localization probability map by multiplying to the previous probability values 
-  - `pHit` if the world-cell has the same color as the reading (`red`)
-  - `pMiss` if the world-cell has a different color than the reading (`green`)
-3. Then, we **move the robot a step size in a direction**, `1 right` Again, the movement is not perfect, we have an inaccuracy; as such, we define the probabilities of being exact (`pExact`), of undershooting (`pUndershoot`) and of overshooting (`pOvershoot`). The movement updates the localization probability map with a convolution: the distribution is shifted in the direction of the motion while applying the uncertainty of the movement. That yields a new updated posterior distribution!
+   - `pHit` if the world-cell has the same color as the reading (`red`)
+   - `pMiss` if the world-cell has a different color than the reading (`green`)
+3. Then, we **move the robot a step size in a direction**, e.g., `1 right`. Again, the movement is not perfect, we have an inaccuracy; as such, we define the probabilities of being exact (`pExact`), of undershooting (`pUndershoot`) and of overshooting (`pOvershoot`). The movement updates the localization probability map with a [convolution](https://en.wikipedia.org/wiki/Convolution): the distribution is shifted in the direction of the motion while applying the uncertainty of the movement. That yields a new updated posterior distribution!
 4. Then, we repeat 2-3 again indefinitely. After each cycle, i.e., after each `move()`, we have an updated **posterior**.
 
 ![Robot Sensing: Scenario](./pics/sense-move.png)
@@ -311,8 +312,8 @@ The localization problem is solved with a sense-move cycle:
 Note that:
 
 - Every time we **measure** the **entropy decreases**; i.e., we have **gained information** of where the robot is. Thus, the localization distribution has more clear peaks.
--  Every time we **move** the **entropy increases**; i.e., we have **lost information** of where the robot is. Thus, the localization distribution is flatter.
-- When we move in a direction, we basically shift our belief map in that direction with the robot; however, since the movement has an uncertainty, we need to account for it. That's why we use a convolution.
+- Every time we **move** the **entropy increases**; i.e., we have **lost information** of where the robot is. Thus, the localization distribution is flatter.
+- When we move in a direction, we basically shift our belief map in that direction with the robot; however, since the movement has an uncertainty, we need to account for it. That's why we use a convolution in which the previous belief is convoluted with the uncertainty in the direction of the movement.
 
 The **entropy** is measured as: `- sum(p*ln(p))`.
 
@@ -413,13 +414,90 @@ display_map(p, bar_width=0.9)
 
 This section is about translating the previous toy example in from the 1D world to the 2D world.
 
-There are no videos / instructions, only the following self-assessed notebook:
+There are no videos / instructions, only the following self-assessed project:
 
 [CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_3_2D_Histogram_Filter`
 
+The project contains the following files:
 
+- `writeup.ipynb`: the project notebook in which all the other files are used.
+- `helpers.py`: auxiliary functions, such as `normalize()` and `blur()`
+- `localizer.py`: the histogram filter is implemented here: `sense()` and `move()` functions are implemented for the 2D world.
+- `simulate.py`: the class `Simulation` is defined, which instantiates a 2D world and enables a simulated movement in it.
+
+The project is about
+
+- implementing `sense()` from `localizer.py`
+- and fixing a bug in `move()` from `localizer.py`.
+
+I had to modify some other lines to update the code to work with Python 3.
+
+In the following, the code from `localizer.py`:
+
+```python
+#import pdb
+from helpers import normalize, blur
+
+def initialize_beliefs(grid):
+    height = len(grid)
+    width = len(grid[0])
+    area = height * width
+    belief_per_cell = 1.0 / area
+    beliefs = []
+    for i in range(height):
+        row = []
+        for j in range(width):
+            row.append(belief_per_cell)
+        beliefs.append(row)
+    return beliefs
+
+def sense(color, grid, beliefs, p_hit, p_miss):
+    new_beliefs = []
+
+    # Loop through all grid cells
+    for i, row in enumerate(beliefs):
+        p_row_new = []
+        for j, cell in enumerate(row):
+            # Check if the sensor reading is equal to the color of the grid cell
+            # if so, hit = 1
+            # if not, hit = 0
+            # Basically, we apply pHit in all map cells
+            # with the measurement value, pMiss in the rest
+            hit = (color == grid[i][j])
+            # Save column/cell in row
+            p_row_new.append(beliefs[i][j] * (hit * p_hit + (1-hit) * p_miss))
+        # Save row in grid
+        new_beliefs.append(p_row_new)
+        
+    # Normalize: divide all elements of new_beliefs by the sum
+    # because the complete distribution should add up to 1
+    new_beliefs = normalize(new_beliefs)
+            
+    return new_beliefs
+
+def move(dy, dx, beliefs, blurring):
+    height = len(beliefs)
+    width = len(beliefs[0])
+    new_G = [[0.0 for i in range(width)] for j in range(height)]
+    for i, row in enumerate(beliefs):
+        for j, cell in enumerate(row):
+            # FIXED: width <-> height were interchanged,
+            # which had an effect only with rectangular grids 
+            new_i = (i + dy ) % height # width
+            new_j = (j + dx ) % width # height
+            #print("width, height:", width, height)
+            #print("i, j:", i, j)
+            #print("dy, dx:", dy, dx)
+            #print("new_i, new_j:", new_i, new_j)
+            #pdb.set_trace()
+            new_G[int(new_i)][int(new_j)] = cell
+    return blur(new_G, blurring)
+
+```
 
 ## 4. Introduction to Kalman Filters
+
+
 
 ## 5. Representing State and Motion
 
