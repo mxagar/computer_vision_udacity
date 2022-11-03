@@ -281,7 +281,7 @@ There are several notebooks in the folder: `4_2_Robot_Localization`.
 
 The final that summarizes it all is `9_1. Sense and Move, exercise.ipynb`.
 
-Basically, a **histogram filter** is built step by step in all the notebooks: 
+Basically, a **histogram filter** (aka. Monte Carlo Localization) is built step by step in all the notebooks: 
 
 > Histogram filters decompose the state space into finitely many regions and represent the cumulative posterior for each region by a single probability value. When applied to finite spaces, they are called discrete Bayes filters; when applied to continuous spaces, they are known as histogram filters. [Probabilistic Robotics](https://calvinfeng.gitbook.io/probabilistic-robotics/basics/nonparametric-filters/01-histogram-filter)
 
@@ -496,6 +496,129 @@ def move(dy, dx, beliefs, blurring):
 ```
 
 ## 4. Introduction to Kalman Filters
+
+> :warning: I think this section is quite introductory; I suggest reading my hand written notes on the Kalman filter: [KalmanFilter_Notes_2020.pdf](KalmanFilter_Notes_2020.pdf).
+
+The **Kalman Filter** is similar to the **histogram filter** (aka. Monte Carlo Localization), and it is used also to track or localize objects.
+
+The main differences are:
+
+- Kalman works with continuous variables and uni-modal representations (= they have one peak).
+- The histogram filter works with discrete variables and multi-modal representations (= they can have several peaks).
+
+![Kalman and Histogram](./pics/kalman_histogram.jpg)
+
+In a discrete world, we use histograms: the variable space is divided in bins and we give a probability to each bin; the resulting histogram is an approximation of the underlying distribution.
+
+In a continuous world we use Gaussians to represent variables; the area below the Gaussian is 1.
+
+![Kalman and Histogram](./pics/kalman_and_gaussian.jpg)
+
+### 4.1 Gaussian Representations and the Update Step
+
+Any Gaussian can be parametrized by 
+
+- its center `mu`, i.e., the mean, where its maximum or peak is,
+- and its spread `sigma^2`, i.e., the variance.
+
+Additionally, Gaussians
+
+- are symmetrical
+- have only one peak = they're uni-modal
+
+Of course, we'd like to have the smallest `sigma` possible, because that is associated with a variable with less uncertainty.
+
+![Gaussian](./pics/gaussian.jpg)
+
+Similarly as we were talking about the cycle in histogram filters composed by two steps (move and sense), we also have a cycle with two steps in Kalman filters:
+
+1. Measurement and Update (implemented as multiplications between Gaussians)
+2. Prediction (implemented as a convolution or an addition of Gaussians)
+
+In both cases, we work with variables represented as Gaussians.
+
+![Gaussian](./pics/kalman_filter_cycle.jpg)
+
+In the case of the measure and update step we have two Gaussians:
+
+- a prior belief
+- and a measurement.
+
+In order to get an updated distribution / Gaussian, we simply multiply both Gaussians. In that product, 
+
+- the new mean is shifted to the distribution with less spread
+- and the new spread is smaller than the previous two!
+
+![Gaussian Update: Product](./pics/gaussian_update.png)
+
+We need to multiply the two Gaussians because we're applying the Bayes' rule: we're obtaining a posterior from a prior after we measure a conditional event.
+
+As shown in the next figure:
+
+- The new mean is the sum of the two means weighted by the opposite variance.
+- The new variance is the inverse of the sum of the inverse variances; that's why it is smaller than any of them (it's like two springs in parallel):
+
+![Gaussian Update: Product](./pics/bayes_multiplication.jpg)
+
+### 4.2 Gaussian Update: Notebooks
+
+The following notebooks are very simple; basically, Gaussian operations are implemented manually. They refer to the first step in the Kalman filter cycle: *Measure and Update*.
+
+The notebooks can be found in
+
+[CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_4_Kalman_Filters`
+
+- `1_1. Gaussian Calculations.ipynb`
+- `2_1. New Mean and Variance, exercise.ipynb`
+
+Ans this is the code in them:
+
+```python
+# import math functions
+from math import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+# gaussian function
+def f(mu, sigma2, x):
+    ''' f takes in a mean and squared variance, and an input x
+       and returns the gaussian value.'''
+    coefficient = 1.0 / sqrt(2.0 * pi *sigma2)
+    exponential = exp(-0.5 * (x-mu) ** 2 / sigma2)
+    return coefficient * exponential
+
+### ---
+
+# display a gaussian over a range of x values
+# define the parameters
+mu = 10
+sigma2 = 4
+
+# define a range of x values
+x_axis = np.arange(0, 20, 0.1)
+
+# create a corresponding list of gaussian values
+g = []
+for x in x_axis:
+    g.append(f(mu, sigma2, x))
+
+# plot the result 
+plt.plot(x_axis, g)
+
+### ---
+
+# the update function
+def update(mean1, var1, mean2, var2):
+    ''' This function takes in two means and two squared variance terms,
+        and returns updated gaussian parameters.'''
+    new_mean = (var2*mean1 + var1*mean2)/(var2+var1)
+    new_var = 1/(1/var2 + 1/var1)
+    
+    return [new_mean, new_var]
+```
+
+### 4.3 Prediction Step
+
 
 
 
