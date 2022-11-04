@@ -619,14 +619,167 @@ def update(mean1, var1, mean2, var2):
 
 ### 4.3 Prediction Step
 
-Since 
+The prediction step consists in observing the motion and forecasting the next state based on it. It is equivalent to what we did with the histogram filter: We need to take the Gaussian and shift it in the direction of the movement; additionally, the uncertainty of the movement needs to be taken into account.
+
+The operation that accomplishes all that is the convolution; however, **in the case of Gaussians, that consists in adding to the parameters of the distribution the movement value and the variance of the movement**:
+
+- `mu_new <- mu_old + u`
+- `sigma^2_new <- sigma^2_old + r^2`
 
 ![Kalman Filter: Motion Update](./pics/motion_update.jpg)
 
+```python
+# the motion update/predict function
+def predict(mean1, var1, mean2, var2):
+    ''' This function takes in two means and two squared variance terms,
+        and returns updated gaussian parameters, after motion.'''
+    ## TODO: Calculate the new parameters
+    new_mean = mean1 + mean2
+    new_var = var1 + var2
+    
+    return [new_mean, new_var]
+```
+
+### 4.4 1D Kalman Filter
+
+This section integrates the `update()` and `predict()` functions for Gaussian states (in 1D) to the Kalman filter cycle: *Measure and Update*.
+
+The notebook can be found in
+
+[CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_4_Kalman_Filters / 4_1. 1D Kalman Filter, exercise.ipynb`
 
 
+```python
+
+# the update function
+def update(mean1, var1, mean2, var2):
+    ''' This function takes in two means and two squared variance terms,
+        and returns updated gaussian parameters.'''
+    # Calculate the new parameters
+    new_mean = (var2*mean1 + var1*mean2)/(var2+var1)
+    new_var = 1/(1/var2 + 1/var1)
+    
+    return [new_mean, new_var]
+
+
+# the motion update/predict function
+def predict(mean1, var1, mean2, var2):
+    ''' This function takes in two means and two squared variance terms,
+        and returns updated gaussian parameters, after motion.'''
+    # Calculate the new parameters
+    new_mean = mean1 + mean2
+    new_var = var1 + var2
+    
+    return [new_mean, new_var]
+
+### ---
+
+# measurements for mu and motions, U
+measurements = [5., 6., 7., 9., 10.]
+motions = [1., 1., 2., 1., 1.]
+
+# initial parameters
+measurement_sig = 4. # measurement uncertainty, constant
+motion_sig = 2. # motion uncertainty, constant
+mu = 0. # initial location estimation
+sig = 10000. # initial location uncertainty (high confusion)
+
+## Loop through all measurements/motions
+## and print out and display the resulting Gaussian 
+## Note that even though the initial estimate for location
+## (the initial mu) is far from the first measurement,
+## it catches up quickly as we cycle through measurements and motions.
+for i in range(len(measurements)):
+    # measure and update
+    mu, sig = update(mu, sig, measurements[i], measurement_sig)
+    print(f'Update: {mu}, {sig}')
+    # move and predict
+    mu, sig = predict(mu, sig, motions[i], motion_sig)
+    print(f'Predict: {mu}, {sig}')
+    # plot
+    x_axis = np.arange(-20, 20, 0.1)
+    g = []
+    for x in x_axis:
+        g.append(f(mu, sig, x))
+    plt.plot(x_axis, g)
+plt.show()
+
+# Update: 4.998000799680128, 3.9984006397441023
+# Predict: 5.998000799680128, 5.998400639744102
+# Update: 5.999200191953932, 2.399744061425258
+# Predict: 6.999200191953932, 4.399744061425258
+# Update: 6.999619127420922, 2.0951800575117594
+# Predict: 8.999619127420921, 4.09518005751176
+# Update: 8.999811802788143, 2.0235152416216957
+# Predict: 9.999811802788143, 4.023515241621696
+# Update: 9.999906177177365, 2.0058615808441944
+# Predict: 10.999906177177365, 4.005861580844194
+```
+
+### 4.5 Going Beyond 1D
+
+Usually we work on n-D worlds, at least 2D, also known as the *state space*. Additionally, **Kalman filters measure position/location, but they are able to implicitly infer the velocity or change rate of the state!**
+
+In order to make that possible, we need to define **motion models**.
 
 ## 5. Representing State and Motion
+
+Kalman filters are widely used in robotics for localization because they are able to produce accurate estimates of the state (position and velocity). That happens in a cycle of two steps:
+
+- Measurement update
+- Motion prediction (also known as time update)
+
+Moreover, **the state estimate has less uncertainty than any of the two steps: the measurement or the motion**, in other words, Kalman filters effectively filter out uncertainty in the state estimate. That happens because the product of two Gaussians (as happens in the measurement step) has a smaller variance than the original distributions that are multiplied.
+
+![Kalman Filter: Concept](./pics/kalman_filter_concept.jpg)
+
+> The Takeaway: The beauty of Kalman filters is that they combine somewhat inaccurate sensor measurements with somewhat inaccurate predictions of motion to get a filtered location estimate **that is better than any estimates that come from only sensor readings or only knowledge about movement.**
+
+### 5.1 Introduction to State and Motion Models
+
+We can define inside the state vector anything we consider important; usually the **position and velocity** are taken to define the state of a system.
+
+The idea of taking the velocity is based on the fact that we can use it to **predict the next state** based on a **motion model**:
+
+```python
+# Motion model: constant velocity
+def predict_state(state, dt)
+  # The position component is updated linearly with the velocity
+  # new_pos = old_pos + old_vel*time
+  state = [state[0]+state[1]*dt, state[1]]
+  return state
+
+# Initial state
+x_0 = 4
+vel_0 = 1
+state = [x_0, vel_0]
+# Time step
+dt = 1
+# Simulate the next 10 time steps
+for i in range(10):
+  state = predict_state(state, dt)
+```
+
+We can have different motion models, not only the one with the assumed constant velocity; all models have assumptions and all models have errors, e.g., due to wind effects, slope, tire slippage, etc.
+
+Another motion model could consider non-constant velocity, i.e., we include the **acceleration**:
+
+`change in velocity = dv = a * t = acceleration * time`
+ 
+If we apply the equations and integrate the position `p` for a time interval of `dt`:
+
+- Velocity: `v = v_0 + a*dt`
+- Position: `p = p_0 + v_0*dt + 0.5*a*dt^2`
+
+In that case, the state must contain the acceleration; the state has the smallest representation possible so that the model works.
+
+The videos explain these kinematics/motion formulae like for kids with images.
+
+![Kinematics: Acceleration and Velocity](./pics/kinematics_acceleration.png)
+
+### 5.2 Car Object
+
+
 
 ## 6. Matrices and Transformation of State
 
