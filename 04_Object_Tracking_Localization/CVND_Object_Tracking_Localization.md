@@ -560,7 +560,7 @@ As shown in the next figure:
 
 ![Gaussian Update: Product](./pics/bayes_multiplication.jpg)
 
-### 4.2 Gaussian Update: Notebooks
+### 4.2 Gaussian Update Step: Notebooks
 
 The following notebooks are very simple; basically, Gaussian operations are implemented manually. They refer to the first step in the Kalman filter cycle: *Measure and Update*.
 
@@ -618,6 +618,10 @@ def update(mean1, var1, mean2, var2):
 ```
 
 ### 4.3 Prediction Step
+
+Since 
+
+![Kalman Filter: Motion Update](./pics/motion_update.jpg)
 
 
 
