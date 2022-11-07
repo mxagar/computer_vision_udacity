@@ -777,11 +777,92 @@ The videos explain these kinematics/motion formulae like for kids with images.
 
 ![Kinematics: Acceleration and Velocity](./pics/kinematics_acceleration.png)
 
-### 5.2 Car Object
+### 5.2 Car and Color Objects
+
+This section introduces a `Car` class, defined in 
+
+[CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_5_State_and_Motion car.py`
+
+```python
+class Car:
+  # p and v are 2D and are stored in attribute state; world is a 2D empty grid
+  def __init__(self, position, velocity, world):
+    pass
+  def move(self, dt=1): # move in the direction of the velocity; record a path; velocity remains constant
+    pass
+  def turn_left(self): # rotate velocity values
+    pass
+  def display_world(self): # display world grid, location (X) and path (., older locations)
+    pass
+```
+
+The interaction with the class is shown in `1. Interacting with a Car Object.ipynb` and successive notebooks.
+
+For instance, moving a car in a 4x4 square:
+
+```python
+# Define world grid: 
+# y rows (ascending as we go down),
+# x cols (ascending as we go right)
+height = 4
+width = 6
+world = np.zeros((height, width))
+# Initial State: position + velocity
+initial_position = [0, 0] # [y, x] (top-left corner)
+velocity = [1, 0] # [vy, vx] (moving downwards)
+
+# Create car in initial position (0,0)
+carla = car.Car(initial_position, velocity, world)
+
+# Movement
+carla.move()
+carla.move()
+carla.move()
+carla.turn_left()
+carla.move()
+carla.move()
+carla.move()
+carla.turn_left()
+carla.move()
+carla.move()
+carla.move()
+carla.turn_left()
+carla.move()
+carla.move()
+carla.move()
+
+# Display
+carla.display_world()
+# Get state
+carla.state # [[0, 0], [0, -1]]
+```
+
+#### Modifications
+
+Very simple modifications are done in the folder files:
+
+- Implement a function `turn_right()`.
+- Add a car color to `__init__()`.
+- Implement a `Color` class.
+- Operator overloading: `__add__()`.
+
+They assume the user doesn't know object oriented programming.
+
+### 5.3 State: Matrix Notation
+
+The **state transformation matrix** is shown:
+
+![State Transformation Matrix in 1D](./pics/state_transformation_matrix.png)
+
+In my hand written notes it's `F_k`.
+
+![State Transformation Matrix in 2D](./pics/state_transformation_matrix_2d.png)
+
+
+## 6. Matrices and Transformation of State: Kalman Filter in 2D
 
 
 
-## 6. Matrices and Transformation of State
 
 ## 7. Simultaneous Localization and Mapping
 
