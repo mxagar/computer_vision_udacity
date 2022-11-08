@@ -861,10 +861,170 @@ In my hand written notes it's `F_k`.
 
 ## 6. Matrices and Transformation of State: Kalman Filter in 2D
 
+If we extend our 1D world to higher dimensions, we need to work with **multivariate Gaussians**, which have
+
+- a vector of means
+- and a covariance matrix.
+
+![Multivariate Gaussian](./pics/multivariate_gaussian.jpg)
+
+The covariance matrix has the variance (i.e., uncertainty) of each dimension in its diagonal; if the Gaussian is tilted, there is a **correlation** between the variables, and the covariance matrix is not diagonal, i.e., the values **out** of its diagonal account for those correlations and they are called covariances. That correlation is very informative, since we can estimate where one variable will be if we know the value of another with which it is correlated.
+
+![2D Gaussian](./pics/2d_gaussian.jpg)
+
+In a Kalman filter, our multi-dimensional variable is the **state**; that state is usually composed by the **location** and the **velocity**. Since we have a **motion model**, we know that both are related, and that relationship can be represented as a tilted Gaussian, `F`. Every time we measure the location/position, we also get a Gaussian which has no information about the velocity, but **multiplying both Gaussians, the observed location and the motion model**, we get a very good estimate of the state, which contains all variables!
+
+![Kalman: Prediction](./pics/kalman_prediction.jpg)
+
+:warning: The formula in the figure is wrong; the motion model should be `x' <- x + dt*v`.
+
+Note that we don't measure the velocity, but the estimated state has a value of it with high certainty. In general, we can say that the Kalman filter has two types of variables:
+
+- Observable (location)
+- Hidden (velocity)
+
+The Kalman filter is especially good at inferring the value of the hidden variables.
+
+![Kalman Filter: Observable and Hidden Variables](./pics/kalman_variables.jpg)
+
+All in all, the computations to obtain a new state estimate after the measurements `x'` and its associate uncertainty covariance matrix `P'` are the following:
+
+![Kalman Filter: Equations](./pics/kalman_equations.jpg)
+
+That's the Kalman Filter!
+
+We don't need to learn the equations, but these are basically a generalization of the 1D case for multi-dimensional Gaussians. My hand written notes explain them better than here.
+
+Other notations are usually common, too:
+
+![Kalman Filter: Equations](./pics/kalman_equations_notation.jpg)
+
+![Kalman Filter: Equation Notation](./pics/kalman_notation.jpg)
+
+![Kalman Filter: Variable Definitions](./pics/kalman_variable_definitions.jpg)
 
 
+Notes:
+
+- `x` is the state mean and `P` is the state covariance
+- `F` is the state transition matrix, which contains the motion model
+- `u` is the control vector, usually the acceleration
+- `B` is the control matrix
+- `Q` is the uncertainty from the environment added to `P`
+- `H` is the measurement/observation matrix which maps the state to the sensor space
+- `y` is the error in sensor space between the measurement and the predicted state mapped to the sensor space
+- `R` is the uncertainty due to the sensor noise
+- `S` is computed to obtain the **Kalman gain** `K`
+- The **Kalman gain** yields the new `x'` and its associated covariance matrix `P'`
+
+### Rest of the Section
+
+The rest of the section is in linear algebra, specifically, matrix operations. Very basic content, quite deceiving, but I guess they need to cover all levels. However, it doesn't make much sense to lower the level so much after the *advanced* Deep Learning content.
+
+`x = [x, y, v_x, v_y, phi, alpha]`
+
+Vectors, matrices, etc. are coded; matrix operations are coded by hand.
 
 ## 7. Simultaneous Localization and Mapping
+
+Until now, we've seen how to solve localization with two approaches: (1) histogram filters and (2) Kalman filter. In all the cases, the world map was known. SLAM is about simultaneously generating the world map and solving the localization problem.
+
+The idea is that the robot moves and builds the map; when the robot moves, uncertainty due to movement is accumulated, but when the loop is closed (i.e., the robot visits a region it's already been), the uncertainty is reduced and the map is consolidated.
+
+![Mapping: Uncertainty](./pics/mapping_uncertainty.jpg)
+
+![Mapping: Loop closed, uncertainty decreased](./pics/mapping_loop_closed.jpg)
+
+### 7.1 Graph SLAM
+
+Graph SLAM is one method to solve SLAM; it's the easiest to explain.
+
+It consists in collecting:
+
+- The initial pose
+- The relative motion poses
+- The relative measurement pose of landmarks, done from each new pose
+
+These are the **constrains**; however, they are not rigid, but they are Gaussians! It's like defining them loosely, like a rubber band. Then, we chain all those constraints in a system and find the most likely concrete values for the system.
+
+![Graph SLAM: Idea](./pics/graph_slam_idea.jpg)
+
+### 7.2 Constrains
+
+Constraints are implemented as a matrix and a vector in Graph SLAM. The matrix is symmetric and contains all constraint poses in its rows & columns; the vector is analog.
+
+Whenever we move or measure something, the matrix cells/weights are updated additively, i.e., we add the corresponding constraint weights to the previous content.
+
+For each motion/measurement, we update only the region of the matrix which is affected by the motion/measurement.
+
+Example:
+
+    We move from x_0 -> x_1, such that: x_1 = x_0 + 5
+    The motion constraint has two variables, so it's re-written in 2 ways: x_0, x_1
+
+      x_0 - x_1 = -5
+      x_1 - x_0 = 5
+      (-x_0 + x_1 = 5)
+
+    The coefficients of the constraints are transferred to the matrix:
+
+            x_0   x_1 | vector
+      x_0   1     -1  |  -5
+      x_1   -1    1   |  5
+
+    If we now move again, a new portion of the matrix is updated: x_2 = x_1 - 4
+
+      x_1 - x_2 = 4
+      x_2 - x_1 = -4    
+      (-x_1 + x_2 = -4)
+
+            x_0   x_1     x_2   | vector
+      x_0   1     -1            |  -5
+      x_1   -1    1+1=2   -1    |  5+4=9
+      x_2         -1      1     |  -4      
+
+    If measure a distance from x_1 to the landmark L_0, say 9
+
+      x_1 - L_0 = -9
+      L_0 - x_1 = 9    
+      (-x_1 + L_0 = 9)
+
+
+![Graph SLAM: Constraints](./pics/graph_slam_constrains.jpg)
+
+![Graph SLAM: Constraints](./pics/graph_slam_constrains_2.jpg)
+
+![Graph SLAM: Constraints](./pics/graph_slam_constrains_3.jpg)
+
+Summary:
+
+- For each constraint equation (movement or measurement), that equation is formulated `n` times, being `n` the number of variables `x` or `L`.
+- The coefficients of the equations are accumulated (added) in the graph matrix.
+- Not every new position must have a landmark measurement!
+- The graph matrix might have untouched cells, evaluated with value 0; untouched cells mean that there are no constraints between the variables (`x`, `L`) which those cells relate.
+- Since landmarks cannot measure each other, the portion related to the landmarks will be always a diagonal matrix.
+
+In the following, small quizes related to which cells are modified/unmodified in given motion systems:
+
+![Graph SLAM: Matrix Modification](./pics/graph_slam_matrix_modification.jpg)
+
+![Graph SLAM: Untouched Cells](./pics/untouched_cells.jpg)
+
+### 7.3 The System: Omega and Xi
+
+The graph representation seen so far is composed by
+
+- The matrix of modified variables, also denoted as `Omega`
+- The vectors of modification differences, also called `Xi`
+
+It turns out that the best estimate `m` for all variables is
+
+`mu = inv(Omega)*Xi`
+
+So we build `Omega` and `Xi` over time and compute `mu` with the formula when we need it.
+
+![Graph SLAM: Omega and Xi](./pics/omega_xi_formula.jpg)
+
 
 ## 8. Vehicle Motion Calculus (Optional)
 
