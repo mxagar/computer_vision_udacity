@@ -945,9 +945,16 @@ It consists in collecting:
 - The relative motion poses
 - The relative measurement pose of landmarks, done from each new pose
 
-These are the **constrains**; however, they are not rigid, but they are Gaussians! It's like defining them loosely, like a rubber band. Then, we chain all those constraints in a system and find the most likely concrete values for the system.
+These are the **constrains**; however, they are not rigid, but they are really Gaussians! It's like defining them loosely, like a rubber band. Then, we chain all those constraints in a system and find the most likely concrete values for the system.
 
 ![Graph SLAM: Idea](./pics/graph_slam_idea.jpg)
+
+The Gaussian nature of the constraints is explained in the section [7.4 Confidence](#7.4-Confidence).
+
+For more information on the method, check these important articles:
+
+- [Graph SLAM Algorithm, Thrun et al., 2006](http://robots.stanford.edu/papers/thrun.graphslam.pdf)
+- [A Tutorial on Graph SLAM Algorithms, Grisetti et al., 20010](http://ais.informatik.uni-freiburg.de/teaching/ws11/robotics2/pdfs/ls-slam-tutorial.pdf)
 
 ### 7.2 Constrains
 
@@ -1004,6 +1011,27 @@ Summary:
 - The graph matrix might have untouched cells, evaluated with value 0; untouched cells mean that there are no constraints between the variables (`x`, `L`) which those cells relate.
 - Since landmarks cannot measure each other, the portion related to the landmarks will be always a diagonal matrix.
 
+That can be summarized as the following algorithm:
+
+    Initial position: x0
+      omega[ at x0 ] = 1
+      xi[ at x0 ] = initial_pos
+    When robot moves dx at xt update the constraint matrices as follows:
+      Add [[1, -1], [-1, 1]] to omega at [xt, xt+1]
+      Add [-dx, dx] to xi at [xt, xt+1]
+      Note: Use Numpy and slicing
+    When robot measures dl wrt L at xt update the constraint matrices as follows:
+      Add [[1, -1], [-1, 1]] to omega at [xt, L]
+      Add [-dl, dl] to xi at [xt, L]
+      Note: in contrast to the motion, [xt, L] won't be contiguous usually
+      so slicing is not possible; instead, update intersecting rows & cols
+    Update related to the confidence:
+      The added values should be multiplied by a factor s
+      which is really 1/sigma,
+      being sigma the spread of the Gaussian.
+      In this section s = 1 = 1/stdev, stdev = 1.
+      Therefore, we are really summing mean/stdev values!
+
 In the following, small quizes related to which cells are modified/unmodified in given motion systems:
 
 ![Graph SLAM: Matrix Modification](./pics/graph_slam_matrix_modification.jpg)
@@ -1017,7 +1045,7 @@ The graph representation seen so far is composed by
 - The matrix of modified variables, also denoted as `Omega`
 - The vectors of modification differences, also called `Xi`
 
-It turns out that the best estimate `m` for all variables is
+It turns out that the best estimate `mu` for all variables is
 
 `mu = inv(Omega)*Xi`
 
@@ -1025,8 +1053,305 @@ So we build `Omega` and `Xi` over time and compute `mu` with the formula when we
 
 ![Graph SLAM: Omega and Xi](./pics/omega_xi_formula.jpg)
 
+#### Example Notebooks
+
+The notebooks in
+
+[CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_7_SLAM`
+
+show how different steps of motion and measurement update `Omega` and `Xi`, and how the solution of the system varies depending on the measurements.
+
+The Example taken is the following:
+
+![SLAM Graph Example](./pics/slam_graph_example.png)
+
+Note that the example is 1D! It seems to be 2D because the landmarks and the poses are in a plane, but there is only one coordinate for them, as I understand; in consequence, the solution to the system `x = inv(omega)*xi` yields one coordinate for each variable.
+
+The algorithm followed is the one summarized in the previous section. And the final code to solve it is this:
+
+```python
+import numpy as np
+
+# Algorithm:
+# 
+# Initial position: x0
+#   omega[ at x0 ] = 1
+#   xi[ at x0 ] = initial_pos
+# When robot moves dx at xt update the constraint matrices as follows:
+#   Add [[1, -1], [-1, 1]] to omega at [xt, xt+1]
+#   Add [-dx, dx] to xi at [xt, xt+1]
+#   Note: Use Numpy and slicing
+# When robot measures dl wrt L at xt update the constraint matrices as follows:
+#   Add [[1, -1], [-1, 1]] to omega at [xt, L]
+#   Add [-dl, dl] to xi at [xt, L]
+#   Note: in contrast to the motion, [xt, L] won't be contiguous usually
+#   so slicing is not possible; instead, update intersecting rows & cols
+# Update related to the confidence:
+#   The added values should be multiplied by a factor s
+#   which is really 1/sigma,
+#   being sigma the spread of the Gaussian.
+#   In this section s = 1 = 1/stdev, stdev = 1.
+#   Therefore, we are really summing mean/stdev values!
+
+def mu_from_positions(initial_pos, move1, move2, Z0, Z1, Z2):
+    
+    ## Construct constraint matrices
+    ## and add each position/motion constraint to them
+    
+    # Initialize constraint matrices with 0's
+    # Now these are 4x4 because of 3 poses and a landmark
+    omega = np.zeros((4,4))
+    xi = np.zeros((4,1))
+    # Variables: x_0, x_1, x_2, L
+    # Anothe option:
+    # omega = [[0, 0, 0, 0],
+    #          [0, 0, 0, 0],
+    #          [0, 0, 0, 0],
+    #          [0, 0, 0, 0]]
+    # xi = [[0],
+    #       [0],
+    #       [0],
+    #       [0]]
+    # omega = np.array(omega)
+    # xi = np.array(xi)
+    
+    # Initial pose constraint: x0
+    omega[0,0] = 1
+    xi[0,0] = initial_pos
+    
+    # Movement 1
+    i = 0 # x0 -> x1
+    dx = move1
+    omega[i:(i+2),i:(i+2)] += np.array([[1, -1], [-1, 1]])
+    xi[i:(i+2),:] += np.array([[-dx], [dx]])
+    # Another option:
+    # First motion, dx = move1
+    # omega += [[1., -1., 0., 0.],
+    #           [-1., 1., 0., 0.],
+    #           [0., 0., 0., 0.],
+    #           [0., 0., 0., 0.]]
+    # xi += [[-move1],
+    #        [move1],
+    #        [0.],
+    #        [0.]]
+
+    # Movement 2
+    i = 1 # x1 -> x2
+    dx = move2
+    omega[i:(i+2),i:(i+2)] += np.array([[1, -1], [-1, 1]])
+    xi[i:(i+2),:] += np.array([[-dx], [dx]])
+    
+    ## Sensor measurements for the landmark, L
+    
+    # Measurement 1
+    i = 0 # x0 -> L
+    j = 3 # x0 -> L
+    dl = Z0
+    omega[i,i] += 1
+    omega[i,j] += -1
+    omega[j,i] += -1
+    omega[j,j] += 1
+    xi[i,0] += -dl
+    xi[j,0] += dl
+    # Another option:
+    # omega += [[1., 0., 0., -1.],
+    #           [0., 0., 0., 0.],
+    #           [0., 0., 0., 0.], 
+    #           [-1., 0., 0., 1.]]
+    # xi += [[-Z0],
+    #        [0.0],
+    #        [0.0],
+    #        [Z0]]
+
+    # Measurement 1
+    i = 1 # x1 -> L
+    j = 3 # x1 -> L
+    dl = Z1
+    omega[i,i] += 1
+    omega[i,j] += -1
+    omega[j,i] += -1
+    omega[j,j] += 1
+    xi[i,0] += -dl
+    xi[j,0] += dl
+
+    # Measurement 3
+    i = 2 # x2 -> L
+    j = 3 # x2 -> L
+    dl = Z2
+    omega[i,i] += 1
+    omega[i,j] += -1
+    omega[j,i] += -1
+    omega[j,j] += 1
+    xi[i,0] += -dl
+    xi[j,0] += dl
+
+    # Display final omega and xi
+    print('Omega: \n', omega)
+    print('\n')
+    print('Xi: \n', xi)
+    print('\n')
+    
+    ## Calculate mu as the inverse of omega * xi
+    ## recommended that you use: np.linalg.inv(np.matrix(omega)) to calculate the inverse
+    omega_inv = np.linalg.inv(np.matrix(omega))
+    mu = omega_inv*xi
+    return mu
+
+### ---
+
+# call function and print out `mu`
+mu = mu_from_positions(-3, 5, 3, 10, 5, 2)
+print('Mu: \n', mu)
+# Omega: 
+#  [[ 3. -1.  0. -1.]
+#  [-1.  3. -1. -1.]
+#  [ 0. -1.  2. -1.]
+#  [-1. -1. -1.  3.]]
+# 
+# Xi: 
+#  [[-18.]
+#  [ -3.]
+#  [  1.]
+#  [ 17.]]
+# 
+# Mu: 
+#  [[-3.]
+#  [ 2.]
+#  [ 5.]
+#  [ 7.]]
+
+```
+
+### 7.4 Confidence
+
+**What's happening in the background is Gaussian multiplication!** We add coefficients in the `omega` and `xi` matrices, but these are effectively Gaussian multiplications: when Gaussians are multiplied, their exponents are added!
+
+The Gaussian is
+
+    N(m, s) = 1/s*sqrt(2*pi) * exp (0.5*((x - m)/s)^2)
+
+When we go from `x_0` to `x_1` with `dx1`, we have:
+
+    1/s*sqrt(2*pi) * exp (0.5*((x_1 - x_0 - dx1)/s)^2)
+
+When we go from `x_1` to `x_2` with `dx2`, we have:
+
+    1/s*sqrt(2*pi) * exp (0.5*((x_2 - x_1 - dx2)/s)^2)
+
+Making these two steps is like multiplying these two Gaussians, which is equivalent to adding the exponents; if we 
+
+- remove the scaling
+- remove the exponent
+- add instead of multiply
+- take the base of the squared exponent, i.e., remove `^2`
+
+we have *almost* what we've been doing in the `omega` and `xi` matrices; the difference is that we are missing the sigma value, `s`:
+
+    x_1/s - x_0/s = dx1/s
+    x_2/s - x_1/s = dx2/s
+
+That means, we have assumed `s = 1` so far; by changing and multiplying the values enetered in `omega` and `xi` we can model the uncertainty; we call `1/s` the strength factor:
+
+- a larger `s` means a smaller strength factor, which is related to less confidence
+- a smaller `s` means a larger strength factor, which is related to more confidence.
+
+We basically need to multiply the entered coefficients in `omega` and `xi` and a new solution is obtained, which reveals teh best estimate taking into account the noise/uncertainty:
+
+```python
+# Update of the third measurement
+# with a very high confidence
+strength = 1.0/0.2 # 5
+omega += [[0., 0., 0., 0.],
+          [0., 0., 0., 0.],
+          [0., 0., strength, -strength], 
+          [0., 0., -strength, strength]]
+xi += [[0.],
+       [0.],
+       [-Z2*strength],
+       [Z2*strength]]
+```
+
+![Graph SLAM: Confidence](./pics/slam_graph_confidence.jpg)
+
+### 7.5 Graph SLAM: Summary
+
+
+
+### Forum Questions
+
+#### Confidence strength in the xi vector?
+
+Hello,
+
+In the Object Tracking and Localization module of the CVND, concretely in the Chapter "Simultaneous Mapping and Localization", confident measurements are introduced in a video which explains that the omega matrix aggregates really exponential constraints over time; these constraints are in reality scaled by `1/sigma`. Then, Sebastian encourages to increase the confidence of the last measurement (to value 5 = 1/sigma) in an example which is contained in the notebook `3. Confident Measurements.ipynb`.
+
+In that notebook, the following modification is done:
+
+```python
+# Strength of 5 applied to coefficients of 1
+omega += [[0., 0., 0., 0.],
+          [0., 0., 0., 0.],
+          [0., 0., 5., -5.], 
+          [0., 0., -5., 5.]]
+xi += [[0.],
+       [0.],
+       [-Z2],
+       [Z2]]
+```
+
+However, if I understood correctly, the strength factor should be applied to the `xi` vector, too, because it contains in reality `z/sigma`. Therefore, we should have:
+
+```python
+# Strength of 5 applied to coefficients of 1
+s = 5.0
+omega += [[0., 0., 0., 0.],
+          [0., 0., 0., 0.],
+          [0., 0., s, -s], 
+          [0., 0., -s, s]]
+xi += [[0.],
+       [0.],
+       [-Z2*s],
+       [Z2*s]]
+```
+Note that I multiplied the measurement values of `xi` by a factor `s`.
+
+Which version is correct and why: the first or the second?
+
+Thank you,
+Mikel
+
+#### Graph SLAM: Dimensions of Constraints
+
+Hello,
+
+There is something a bit confusing in the examples given in the SLAM section of the module "Object Tracking and Localization": the variables of the localization points (x) and landmarks (L) are expressed in 1D world coordinates; however:
+
+- The world coordinate system is not drawn (so we don't know with respect to what we're saying where things are)
+- The graph of motion and measurements is shown in a 2D plane even though they should be in a 1D line?
+
+Are my observations correct?
+
+Another related question: if we want to work with a 2D system, we'd have to add rows/columns to `omega` and `xi` to include the new dimensions, right?
+
+For instance:
+
+```python
+# 1D
+xi = np.array([x0, x1, L1, L2]).T
+
+# 2D
+xi = np.array([x0_x, x0_y, x1_x, x1_y, L1_x, L1_y, L2_x, L2_y]).T
+```
+
+Is the latter a correct approach?
+
+Thank you,
+Mikel
+
 
 ## 8. Vehicle Motion Calculus (Optional)
+
+
 
 ## 9. Project: Landmark Detection & Tracking (SLAM)
 
