@@ -1275,7 +1275,16 @@ xi += [[0.],
 
 ### 7.5 Graph SLAM: Summary
 
+The following figure summarizes the Graph SLAM approach:
 
+- We add the coefficients of our constraints to the `omega` and `xi` matrices scaled with the `strength = 1 / sigma` factor: initial position, motion, measurement.
+- We solve the equation `mu = inv(omega)*xi` and we get the best estimate for all the constraints.
+
+Note that we get both the **path** as well as the **map**!
+
+The module project consists in implementing a 2D slam system.
+
+![Graph SLAM: Summary](./pics/graph_slam_summary.jpg)
 
 ### Forum Questions
 
