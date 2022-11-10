@@ -1360,6 +1360,187 @@ Mikel
 
 ## 8. Vehicle Motion Calculus (Optional)
 
+This section is optional.
+
+It is quite basic, very low level -- I don' understand how/why they do this after all the "advanced" deep learning stuff.
+
+### Odometry
+
+Car navigation sensors:
+
+- Odometer: it measures how far a vehicle has traveled measuring the velocity and the movements of the steering wheel. However, it has an error due to, e.g., wheel diameter. The driver can reset it manually.
+- Inertial Measurement Unit (IMU): magnetometer, accelerometer, gyroscope.
+
+### Differenciating from Displacement: Velocity and Acceleration
+
+Velocity = slope of displacement in time.
+
+    v = dx/dt
+
+Acceleration = slope of velocity in time.
+
+    a = dv/dt = d(dx/dt)/dt
+
+The following code differentiates a time series:
+
+```python
+# Differentiation function in the helper
+def get_derivative_from_data(position_data, time_data):
+    """
+    Calculates a list of speeds from position_data and 
+    time_data.
+
+    Arguments:
+      position_data - a list of values corresponding to 
+        vehicle position
+
+      time_data     - a list of values (equal in length to
+        position_data) which give timestamps for each 
+        position measurement
+
+    Returns:
+      speeds        - a list of values (which is shorter 
+        by ONE than the input lists) of speeds.
+    """
+    # 1. Check to make sure the input lists have same length
+    if len(position_data) != len(time_data):
+        raise(ValueError, "Data sets must have same length")
+
+    # 2. Prepare empty list of speeds
+    speeds = []
+
+    # 3. Get first values for position and time
+    previous_position = position_data[0]
+    previous_time     = time_data[0]
+
+    # 4. Begin loop through all data EXCEPT first entry
+    for i in range(1, len(position_data)):
+
+        # 5. get position and time data for this timestamp
+        position = position_data[i]
+        time     = time_data[i]
+
+        # 6. Calculate delta_x and delta_t
+        delta_x = position - previous_position
+        delta_t = time - previous_time
+
+        # 7. Speed is slope. Calculate it and append to list
+        speed = delta_x / delta_t
+        speeds.append(speed)
+
+        # 8. Update values for next iteration of the loop.
+        previous_position = position
+        previous_time     = time
+
+    return speeds
+
+### -- Plot
+
+speeds = get_derivative_from_data(displacements, timestamps)
+
+plt.title("Position and Velocity vs Time")
+plt.xlabel("Time (seconds)")
+plt.ylabel("Position (blue) and Speed (orange)")
+plt.scatter(timestamps, displacements)
+plt.scatter(timestamps[1:], speeds)
+plt.show()
+```
+
+### Integrating Acceleration and Velocity
+
+The integral is the inverse operation of the differentiation. The integral is the area below the curve; as such, we need to define the range in which we compute it.
+
+We can approximate it by computing the area of the small rectangles below the curve
+
+In the following code, several integration code pieces are shown:
+
+```python
+# Plot function and the small rectangles,
+# i.e., the approximate area below the curve
+def show_approximate_integral(f, t_min, t_max, N):
+    t = np.linspace(t_min, t_max)
+    plt.plot(t, f(t))
+    
+    delta_t = (t_max - t_min) / N
+    
+    print("Approximating integral for delta_t =",delta_t, "seconds")
+    box_t = np.linspace(t_min, t_max, N, endpoint=False)
+    box_f_of_t = f(box_t)
+    plt.bar(box_t, box_f_of_t,
+            width=delta_t,
+            alpha=0.5,
+            facecolor="orange",
+            align="edge",
+            edgecolor="gray")
+    plt.show()
+
+# Approximate integral computation
+def integral(f, t1, t2, dt=0.1):
+    # area begins at 0.0 
+    area = 0.0
+    
+    # t starts at the lower bound of integration
+    t = t1
+    
+    # integration continues until we reach upper bound
+    while t < t2:
+        
+        # calculate the TINY bit of area associated with
+        # this particular rectangle and add to total
+        dA = f(t) * dt
+        area += dA
+        t += dt
+    return area
+
+# Example function
+def f(t):
+    return -1.3 * t**3 + 5.3 * t ** 2 + 0.3 * t + 1 
+
+# Plot approximate area below the curve
+N = 50
+show_approximate_integral(f, 0, 4, N)
+
+# Compute integral
+integral(f, 2, 4)
+
+# Integration function in the helper
+def get_integral_from_data(acceleration_data, times):
+    # 1. We will need to keep track of the total accumulated speed
+    accumulated_speed = 0.0
+    
+    # 2. The next lines should look familiar from the derivative code
+    last_time = times[0]
+    speeds = []
+    
+    # 3. Once again, we lose some data because we have to start
+    #    at i=1 instead of i=0.
+    for i in range(1, len(times)):
+        
+        # 4. Get the numbers for this index i
+        acceleration = acceleration_data[i]
+        time = times[i]
+        
+        # 5. Calculate delta t
+        delta_t = time - last_time
+        
+        # 6. This is an important step! This is where we approximate
+        #    the area under the curve using a rectangle w/ width of
+        #    delta_t.
+        delta_v = acceleration * delta_t
+        
+        # 7. The actual speed now is whatever the speed was before
+        #    plus the new change in speed.
+        accumulated_speed += delta_v
+        
+        # 8. append to speeds and update last_time
+        speeds.append(accumulated_speed)
+        last_time = time
+    return speeds
+
+```
+
+### Rate Gyros
+
 
 
 ## 9. Project: Landmark Detection & Tracking (SLAM)
