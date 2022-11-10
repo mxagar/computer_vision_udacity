@@ -1364,6 +1364,15 @@ This section is optional.
 
 It is quite basic, very low level -- I don' understand how/why they do this after all the "advanced" deep learning stuff.
 
+Topics covered:
+
+- Differentiation in code
+- Integration in code
+- Error Accumulation
+- Trajectory computation
+- Optional Project: Trajectory Reconstruction from Acceleration Sensor Data
+
+
 ### Odometry
 
 Car navigation sensors:
@@ -1541,7 +1550,149 @@ def get_integral_from_data(acceleration_data, times):
 
 ### Rate Gyros
 
+Gyroscopes give us information about the angular velocity; if we integrate it we obtain the angle of the car.
 
+    w = d(r)/dt -> r = int(w)
+
+### Error
+
+We cannot simply integrate / differentiate sensor signals, because they have noise!
+
+If we integrate the position / rotation values, we'll accumulate error over time.
+
+Additionally, any accelerometer has bias: even though the device is not moving/accelerating, they measure small residual acceleration values. Sensor calibration can alleviate this, but it's never completely fixed.
+
+If we perform the calibration, we extract the residual values of the sensor, i.e., the bias. We can use them later in the integration, as follows:
+
+```python
+def get_integral_from_data(acceleration_data, times, bias=0.0):
+    """
+    Numerically integrates data AND artificially introduces 
+    bias to that data.
+    
+    Note that the bias parameter can also be used to offset
+    a biased sensor.
+    """
+    accumulated_speed = 0.0
+    last_time = times[0]
+    speeds = []
+    for i in range(1, len(times)):
+        
+        # THIS is where the bias is introduced. No matter what the 
+        # real acceleration is, this biased accelerometer adds 
+        # some bias to the reported value.
+        acceleration = acceleration_data[i] + bias
+        
+        time = times[i]
+        delta_t = time - last_time
+        delta_v = acceleration * delta_t
+        accumulated_speed += delta_v
+        speeds.append(accumulated_speed)
+        last_time = time
+    return speeds
+```
+
+### Trajectory Computation
+
+In the notebook
+
+[CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_8_Vehicle_Motion_and_Calculus / Keeping Track of x and y.ipynb`
+
+the 2D trajectory computation function is implemented in the class `Vehicle`, which is able to *drive* using the functions
+
+- `drive_forward()`
+- `turn()`
+- `set_heading()`
+
+Then, the function `show_trajectory()` plots the path generated with the used driving commands.
+
+```python
+import numpy as np
+from math import pi
+from matplotlib import pyplot as plt
+
+# these 2 lines just hide some warning messages.
+import warnings
+warnings.filterwarnings('ignore')
+
+class Vehicle:
+    def __init__(self):
+        self.x       = 0.0 # meters
+        self.y       = 0.0
+        self.heading = 0.0 # radians
+        self.history = []
+        
+    def drive_forward(self, displacement):
+        """
+        Updates x and y coordinates of vehicle based on 
+        heading and appends previous (x,y) position to
+        history.
+        """
+        delta_x = displacement * np.cos(self.heading)
+        delta_y = displacement * np.sin(self.heading)
+        
+        new_x = self.x + delta_x
+        new_y = self.y + delta_y
+        
+        self.history.append((self.x, self.y))
+
+        self.x = new_x
+        self.y = new_y
+    
+    def set_heading(self, heading_in_degrees):
+        """
+        Set's the current heading (in radians) to a new value
+        based on heading_in_degrees. Vehicle heading is always
+        between -pi and pi.
+        """
+        assert(-180 <= heading_in_degrees <= 180)
+        rads = (heading_in_degrees * pi / 180) % (2*pi)
+        self.heading = rads
+        
+    def turn(self, degrees):
+        rads = (degrees * pi / 180)
+        new_head = self.heading + rads % (2*pi)
+        self.heading = new_head
+    
+    def show_trajectory(self):
+        """
+        Creates a scatter plot of vehicle's trajectory.
+        """
+        # get the x and y coordinates from vehicle's history
+        X = [p[0] for p in self.history]
+        Y = [p[1] for p in self.history]
+        
+        # don't forget to add the CURRENT x and y
+        X.append(self.x)
+        Y.append(self.y)
+        
+        # create scatter AND plot (to connect the dots)
+        plt.scatter(X,Y)
+        plt.plot(X,Y)
+        
+        plt.title("Vehicle (x, y) Trajectory")
+        plt.xlabel("X Position")
+        plt.ylabel("Y Position")
+        plt.axes().set_aspect('equal', 'datalim')
+        plt.show()
+```
+
+### Optional Project: Trajectory Reconstruction from Acceleration Sensor Data
+
+In this project, we get time-stamped sensor data with the following values:
+
+- Timestamp
+- Displacement
+- Yaw rate (angular velocity)
+- Acceleration (linear)
+
+We need to reconstruct the trajectory of the car.
+
+Many necessary code pieces have been show already, it's an easy project.
+
+The project link:
+
+[CVND_Localization_Exercises](https://github.com/mxagar/CVND_Localization_Exercises) ` / 4_8_Vehicle_Motion_and_Calculus / project_trajectory_reconstruction`
 
 ## 9. Project: Landmark Detection & Tracking (SLAM)
 
