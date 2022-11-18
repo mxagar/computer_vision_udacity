@@ -89,3 +89,8 @@ HeZhangRenSun_ResNet_2015.pdf
 
 Long_FCN8_SemanticSegmentation_2014.pdf
 	Semantic Segmentation with Fully Convolutional Networks
+
+Chaplot_NeuralLocalization_2018.pdf
+
+Thrun_GraphSLAM_2006.pdf
+GrisettiBurgard_GraphSLAMTutorial_2010.pdf

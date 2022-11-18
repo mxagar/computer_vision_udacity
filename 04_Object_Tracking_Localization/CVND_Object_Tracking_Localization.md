@@ -724,7 +724,7 @@ In order to make that possible, we need to define **motion models**.
 
 ## 5. Representing State and Motion
 
-Kalman filters are widely used in robotics for localization because they are able to produce accurate estimates of the state (position and velocity). That happens in a cycle of two steps:
+Kalman filters are widely used in robotics for localization because they are able to produce accurate estimates of the state (position and velocity). This happens in a cycle of two steps:
 
 - Measurement update
 - Motion prediction (also known as time update)
@@ -1011,6 +1011,10 @@ Summary:
 - The graph matrix might have untouched cells, evaluated with value 0; untouched cells mean that there are no constraints between the variables (`x`, `L`) which those cells relate.
 - Since landmarks cannot measure each other, the portion related to the landmarks will be always a diagonal matrix.
 
+Another example:
+
+![Graph SLAM: Constraints](./pics/omega_xi_constraints.png)
+
 That can be summarized as the following algorithm:
 
     Initial position: x0
@@ -1037,6 +1041,15 @@ In the following, small quizes related to which cells are modified/unmodified in
 ![Graph SLAM: Matrix Modification](./pics/graph_slam_matrix_modification.jpg)
 
 ![Graph SLAM: Untouched Cells](./pics/untouched_cells.jpg)
+
+So far, the 1D world has been explained; the 2D case is equivalent; we can have either:
+
+- an `omega` and `xi` pair for each dimension
+- or build big `omega` and `xi` matrices that chain the values of each dimension as independent variables, as shown below:
+
+![Graph SLAM in 2D](./pics/constraints2D.png)
+
+In the submitted project, the latter method is used, because it generalizes nicely the 1D case. However, note that this method creates one large and sparse `omega` matrix which requires twice as much memory as the former method.
 
 ### 7.3 The System: Omega and Xi
 
@@ -1250,12 +1263,13 @@ we have *almost* what we've been doing in the `omega` and `xi` matrices; the dif
     x_1/s - x_0/s = dx1/s
     x_2/s - x_1/s = dx2/s
 
-That means, we have assumed `s = 1` so far; by changing and multiplying the values enetered in `omega` and `xi` we can model the uncertainty; we call `1/s` the strength factor:
+That means, we have assumed `s = 1` so far; by changing and multiplying the values entered in `omega` and `xi` we can model the uncertainty; we call `1/s` the strength factor:
 
-- a larger `s` means a smaller strength factor, which is related to less confidence
-- a smaller `s` means a larger strength factor, which is related to more confidence.
+- a larger `s` means a smaller strength factor, which is related to less confidence;
+- a smaller `s` means a larger strength factor, which is related to more confidence;
+- we can have a different value of `s` for motion steps or measurements.
 
-We basically need to multiply the entered coefficients in `omega` and `xi` and a new solution is obtained, which reveals teh best estimate taking into account the noise/uncertainty:
+We basically need to multiply the entered coefficients in `omega` and `xi` and a new solution is obtained, which reveals the best estimate taking into account the noise/uncertainty:
 
 ```python
 # Update of the third measurement
@@ -1329,6 +1343,8 @@ Which version is correct and why: the first or the second?
 Thank you,
 Mikel
 
+**I had no answer, but I saw in the submitted project, it is indeed as I said. Additionally, the `sigma` value can be different for motion and measurement steps!**
+
 #### Graph SLAM: Dimensions of Constraints
 
 Hello,
@@ -1357,6 +1373,7 @@ Is the latter a correct approach?
 Thank you,
 Mikel
 
+**I had no answer, but as I saw in the submitted project, it is indeed as I said**.
 
 ## 8. Vehicle Motion Calculus (Optional)
 
