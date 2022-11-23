@@ -19,6 +19,8 @@ Note that:
 	- [CVND_Exercises](https://github.com/mxagar/CVND_Exercises)
 	- [DL_PyTorch](https://github.com/mxagar/DL_PyTorch)
 
+:warning: I would suggest to have a look at my notes on the [Udacity Deep Learning Nanodegree](https://github.com/mxagar/deep_learning_udacity). There is a module on `Deployment` there, which handles much better the topic of cloud computing.
+
 Mikel Sagardia, 2022.  
 No guarantees.
 
@@ -178,6 +180,11 @@ git clone https://github.com/udacity/P1_Facial_Keypoints
 Note: These GPU instances only support JupyterLab as opposed to plain Jupyter notebooks. This just means the interface you're used to in the classroom notebooks will be slightly different (and with a nav bar fornavigating between files)!
 
 ## 2. Cloud Computing with AWS EC2
+
+We need to perform two tasks:
+
+1. Launch an EC2 instance
+2. Connect from our computer to that EC2 instance
 
 ### 2.1 Launch EC2 Instances
 
