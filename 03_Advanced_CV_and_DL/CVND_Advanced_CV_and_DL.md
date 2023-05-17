@@ -122,7 +122,7 @@ pip install mkl-service
     - [RNN Training](#rnn-training)
     - [Video Captioning](#video-captioning)
   - [9. Project: Image Captioning](#9-project-image-captioning)
-  - [10. Fully-Convolutional Neural Networks & Semantic Segmentation](#10-fully-convolutional-neural-networks--semantic-segmentation)
+  - [10. Fully-Convolutional Neural Networks \& Semantic Segmentation](#10-fully-convolutional-neural-networks--semantic-segmentation)
     - [10.1 Properties of FCNs](#101-properties-of-fcns)
     - [10.2 Scene Understanding and Semantic Segmentation](#102-scene-understanding-and-semantic-segmentation)
     - [10.3 Example of an Architecture: FCN-8](#103-example-of-an-architecture-fcn-8)
@@ -168,7 +168,7 @@ In the case of object detection, we now have two losses:
 1. Classification loss, e.g., cross-entropy.
 2. Regression loss, e.g., L1.
 
-We need to use them both to perform backpropagation; this is often done by summing them up witha weighting factor, which is an added hyperparameter:
+We need to use them both to perform backpropagation; this is often done by summing them up with a weighting factor, which is an added hyperparameter:
 
 `loss = w_c *  classification_loss + w_r * regression_loss`
 
@@ -323,7 +323,7 @@ Thus, we need to select the best candidates; that is done with **Intersection ov
 
 ![YOLO many boxes](./pics/YOLO_many_boxes.png)
 
-The **Intersection over the union** between two bounding boxesis computed as follows:
+The **Intersection over the union** between two bounding boxes is computed as follows:
 
 `IoU = area of intersection / area of union = [0,1]`.
 
@@ -351,7 +351,7 @@ In order to deal with that we can define object specific **anchor boxes** that a
 - Anchor box 2: medium and tall (person)
 - ...
 
-The number of channels is multiplied by the number of anchor boxes `n`. That ways, for labelling, the segment of the output vector which corresponds to the anchor box with the largest IoU with the ground truth is filled.
+The number of channels is multiplied by the number of anchor boxes `n`. That way, for labelling, the segment of the output vector which corresponds to the anchor box with the largest IoU with the ground truth is filled.
 
 ![Anchor Boxes](./pics/YOLO_anchor_boxes.png)
 
