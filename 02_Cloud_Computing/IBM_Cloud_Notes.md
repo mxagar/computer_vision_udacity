@@ -19,8 +19,11 @@ Then:
 
     Download installer and install the CLI tool
         https://github.com/IBM-Cloud/ibm-cloud-cli-release/releases/
-    Log in to IBM Cloud
-        >> ibmcloud login
+    Log in to IBM Cloud (and select region, e.g., us-south)
+        >> ibmcloud login # if it doesn't work, try the federated login below with --sso
+        >> ibmcloud login --sso # for federated login, then follow web & iOS app
+            IBMID: mxagar@gmail.com
+            pw
     Install plugins
         IBM Cloud Kubernetes Service: ibmcloud ks
             >> ibmcloud plugin install container-service
