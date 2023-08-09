@@ -10,16 +10,21 @@ Mikel Sagardia, 2022.
 
 ## Overview of Contents
 
-- Imports
-- General
-- Numpy: Images stored as matrices!
-- PIL
-- Matplotlib
-- OpenCV
-- Context: Image Representation
-- Context: Filters, Fourier, Canny, Hough, Haar
-- Context: Harris, Contours, K-Means
-- Context: Pyramids, ORB, HOG
+- [Catalog of Computer Vision Functions Using OpenCV](#catalog-of-computer-vision-functions-using-opencv)
+  - [Overview of Contents](#overview-of-contents)
+  - [Imports](#imports)
+  - [General](#general)
+  - [Numpy: Images stored as matrices!](#numpy-images-stored-as-matrices)
+  - [PIL](#pil)
+  - [Matbplotlib](#matbplotlib)
+  - [OpenCV](#opencv)
+  - [Context: Image Representation](#context-image-representation)
+  - [Context: Filters, Fourier, Canny, Hough, Haar](#context-filters-fourier-canny-hough-haar)
+  - [Context: Harris, Contours, K-Means](#context-harris-contours-k-means)
+  - [Context: Pyramids, ORB, HOG](#context-pyramids-orb-hog)
+  - [Context: Optical Flow](#context-optical-flow)
+  - [Utilities: Re-Usable Snippets](#utilities-re-usable-snippets)
+    - [`resize_images()`](#resize_images)
 
 ## Imports
 
@@ -520,4 +525,43 @@ composite_im[mask!=0] = [0]
 
 # It doesn't seem to work that well; maybe the movement was too big
 plt.imshow(composite_im)
+```
+
+## Utilities: Re-Usable Snippets
+
+### `resize_images()`
+
+```python
+def resize_images(image_paths, output_folder, min_size, keep_aspect_ratio=True):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    for img_path in tqdm(image_paths, desc="Resizing images"):
+        try:
+            # Open image using PIL
+            img = Image.open(img_path)
+            # Convert to RGB
+            img = img.convert("RGB")
+
+            # In PIL w & h are transposed as compared to OpenCV
+            w, h = img.size
+            if keep_aspect_ratio:
+                if h < w:
+                    new_h, new_w = min_size, int(w * min_size / h)
+                else:
+                    new_h, new_w = int(h * min_size / w), min_size
+            else:
+                new_h, new_w = min_size, min_size
+
+            # Resize the image
+            #img = img.resize((new_w, new_h), Image.ANTIALIAS)
+            img = img.resize((new_w, new_h), Image.LANCZOS)
+            
+            # Save the image in the output folder with the same name
+            output_path = os.path.join(output_folder, os.path.basename(img_path))
+            img.save(output_path)
+        except Exception as e:
+            print(f"Failed to process {img_path}. Reason: {e}")
+
+    print("Finished resizing images.")
 ```
