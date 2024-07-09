@@ -21,6 +21,23 @@ Note that:
 
 :warning: I would suggest to have a look at my notes on the [Udacity Deep Learning Nanodegree](https://github.com/mxagar/deep_learning_udacity). There is a module on `Deployment` there, which handles much better the topic of cloud computing.
 
+Table of contents:
+
+- [Udacity Computer Vision Nanodegree: Introduction](#udacity-computer-vision-nanodegree-introduction)
+	- [Practical Installation Notes](#practical-installation-notes)
+	- [Overview of Contents](#overview-of-contents)
+	- [1. Cloud Computing with Google Cloud (It did not work!)](#1-cloud-computing-with-google-cloud-it-did-not-work)
+		- [1.1 Create a New Project \& Define Quotas \& Setup Account](#11-create-a-new-project--define-quotas--setup-account)
+		- [1.2 `gcloud` Command Line Interface Tool (CLI) and the **Cloud Shell**](#12-gcloud-command-line-interface-tool-cli-and-the-cloud-shell)
+		- [1.3 Launch an Instance](#13-launch-an-instance)
+			- [Shutdown](#shutdown)
+		- [1.4 Login to the Instance](#14-login-to-the-instance)
+	- [2. Cloud Computing with AWS EC2](#2-cloud-computing-with-aws-ec2)
+		- [2.1 Launch EC2 Instances](#21-launch-ec2-instances)
+		- [2.2 Connect to an Instance](#22-connect-to-an-instance)
+		- [2.3 Pricing](#23-pricing)
+
+
 Mikel Sagardia, 2022.  
 No guarantees.
 
