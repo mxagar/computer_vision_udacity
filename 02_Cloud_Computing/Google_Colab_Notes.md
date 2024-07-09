@@ -16,13 +16,14 @@ Overview of Contents:
     - [Installing libraries that are not in Colab](#installing-libraries-that-are-not-in-colab)
     - [Download files to Colab environment](#download-files-to-colab-environment)
     - [Github integration](#github-integration)
+    - [Example: Persist during training a model checkpoint and re-use it in a later session](#example-persist-during-training-a-model-checkpoint-and-re-use-it-in-a-later-session)
     - [Links](#links)
 
 
 ## Google Colab Pro Features
 
 - Access to more powerful GPUs: speed, RAM, etc.; e.g.: V100 or A100 Nvidia GPU
-- 10€/month
+- 12€/month
 - 24h running without interruption
 - Terminal usage
 
@@ -51,7 +52,8 @@ Command Palette
 
 Terminal: very important!
 
-    Shell icon on the left vertical menu bar
+    Shell icon on the left vertical menu bar.
+    BUT: now, available for paying users only.
 
 Use Jupyter system aliases!
 
@@ -232,6 +234,9 @@ We can use the Open in Colab shield!
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mxagar/dermatologist-ai/blob/master/dataset_structure_visualization.ipynb)
 
+### Example: Persist during training a model checkpoint and re-use it in a later session
+
+TBD.
 
 ### Links
 
