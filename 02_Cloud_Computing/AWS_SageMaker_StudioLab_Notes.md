@@ -31,4 +31,31 @@ If we need more or extended capabilities, we can easily switch to AWS SageMaker 
 
 ## Usage
 
-TBD.
+After the registration process we can access AWS SageMaker Studio Lab here:
+
+[https://studiolab.sagemaker.aws](https://studiolab.sagemaker.aws)
+
+There, we can choose our runtime:
+
+- CPU, 8h
+- GPU, 4h
+
+Then, a Jupyter notebook is opened, runnig on AWS.
+
+We can:
+
+- Connect/clone a Github repository
+- Open a Terminal windows
+- Install anything, e.g., a new environment
+- Install plugins
+- etc.
+
+The default conda environment is `(studiolab)`.
+
+If we want to link to a AWS SageMaker Studio Lab notebook, we can modify and use the following snippet:
+
+```
+[![Open In Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/org/repo/blob/master/path/to/notebook.ipynb)
+```
+
+**IMPORTANT: Stop the runtime at the login window when finished!**
